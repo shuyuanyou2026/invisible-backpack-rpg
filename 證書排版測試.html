@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>冒險證書排版測試</title>
+  <style>
+    :root {
+      --ink: #4b260b;
+      --panel: #fff8e8;
+      --line: #d7b779;
+      --button: #734115;
+      --page: #fffdf7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+      background: var(--page);
+    }
+
+    main {
+      width: min(100%, 1720px);
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .toolbar input,
+    .toolbar select,
+    .toolbar button {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      font: inherit;
+      font-weight: 800;
+      padding: 8px 12px;
+    }
+
+    .toolbar input[type="number"] {
+      width: 78px;
+      text-align: center;
+    }
+
+    .toolbar button {
+      cursor: pointer;
+      background: var(--button);
+      color: #fff9e9;
+      box-shadow: 0 3px 8px rgba(70, 35, 10, .18);
+    }
+
+    .stage {
+      overflow-x: auto;
+      padding: 4px 0 20px;
+    }
+
+    .certificate {
+      position: relative;
+      width: min(100%, 1536px);
+      aspect-ratio: 1536 / 1024;
+      margin: 0 auto;
+      background-image: url("冒險證書_空白版_v6.png");
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      isolation: isolate;
+    }
+
+    .certificate img {
+      display: block;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .name {
+      position: absolute;
+      left: 10.8%;
+      top: 29.4%;
+      width: 18.8%;
+      height: 6.6%;
+      display: grid;
+      place-items: center;
+      color: #4f2208;
+      font-size: clamp(24px, 3.1vw, 54px);
+      line-height: 1;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .character-wrap {
+      position: absolute;
+      left: 31.2%;
+      top: 23.2%;
+      width: 35.4%;
+      height: 54.6%;
+      display: grid;
+      place-items: end center;
+      overflow: visible;
+    }
+
+    .character {
+      width: var(--character-w, 151%);
+      max-width: none;
+      height: auto;
+      translate: var(--character-x, 0) var(--character-y, 0);
+      filter: drop-shadow(0 10px 12px rgba(80, 42, 10, .16));
+    }
+
+    .title {
+      position: absolute;
+      left: 68.55%;
+      top: 21.8%;
+      width: 22.25%;
+      height: 8.7%;
+      display: grid;
+      place-items: center;
+      color: #4b2208;
+      font-size: clamp(24px, 3.15vw, 54px);
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 2px 0 rgba(255, 246, 212, .85);
+      white-space: nowrap;
+    }
+
+    .trait {
+      position: absolute;
+      left: 70.05%;
+      top: 38.55%;
+      width: 19.75%;
+      height: 12.3%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      color: #4b260b;
+      font-size: clamp(13px, 1.35vw, 23px);
+      line-height: 1.62;
+      font-weight: 850;
+      letter-spacing: 0;
+      text-align: left;
+    }
+
+    .badge-wrap {
+      position: absolute;
+      left: 70.7%;
+      top: 62.2%;
+      width: 15.2%;
+      height: 21.1%;
+      display: grid;
+      place-items: center;
+    }
+
+    .badge {
+      width: var(--badge-w, 138%);
+      max-width: none;
+      height: auto;
+      translate: var(--badge-x, 0) var(--badge-y, 0);
+      filter: drop-shadow(0 6px 8px rgba(65, 34, 8, .18));
+    }
+
+    .score {
+      position: absolute;
+      left: 10.7%;
+      top: 44.25%;
+      width: 18.4%;
+      height: 11.2%;
+      display: grid;
+      place-items: center;
+      color: #5b2608;
+      font-size: clamp(38px, 5vw, 82px);
+      line-height: 1;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .capital {
+      position: absolute;
+      top: 87.45%;
+      width: 7%;
+      text-align: center;
+      font-size: clamp(20px, 2.3vw, 38px);
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .capital.economic {
+      left: 18.25%;
+      color: #b56a16;
+    }
+
+    .capital.cultural {
+      left: 40.65%;
+      color: #247b60;
+    }
+
+    .capital.social {
+      left: 60.95%;
+      color: #b23862;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        padding: 12px 8px 34px;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+
+      .stage {
+        padding-bottom: 12px;
+      }
+
+      .certificate {
+        min-width: 960px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="toolbar" aria-label="證書測試工具">
+      <label>
+        姓名
+        <input id="nameInput" type="text" value="Winter" maxlength="8" />
+      </label>
+      <label>
+        稱號
+        <select id="tierSelect">
+          <option value="0">堅毅的冒險者</option>
+          <option value="1" selected>勤奮的挑戰者</option>
+          <option value="2">踏實的旅人</option>
+          <option value="3">幸運的領航員</option>
+          <option value="4">傳說的勇者</option>
+        </select>
+      </label>
+      <label>
+        開局值
+        <input id="scoreInput" type="number" value="49" min="0" max="109" />
+      </label>
+      <label>
+        物資
+        <input id="economicInput" type="number" value="17" min="0" max="33" />
+      </label>
+      <label>
+        天賦
+        <input id="culturalInput" type="number" value="3" min="0" max="36" />
+      </label>
+      <label>
+        盟友
+        <input id="socialInput" type="number" value="29" min="0" max="40" />
+      </label>
+      <button id="downloadBtn" type="button">下載冒險證書</button>
+    </div>
+
+    <div class="stage">
+      <section class="certificate" id="certificate" aria-label="冒險證書">
+        <div class="name" id="nameText">Winter</div>
+        <div class="character-wrap" id="characterWrap">
+          <img class="character" id="characterImg" alt="" src="02_勤奮的挑戰者.png" />
+        </div>
+        <div class="title" id="titleText">勤奮的挑戰者</div>
+        <div class="trait" id="traitText"></div>
+        <div class="badge-wrap" id="badgeWrap">
+          <img class="badge" id="badgeImg" alt="" src="02_挑戰者徽章.png" />
+        </div>
+        <div class="score" id="scoreText">49</div>
+        <div class="capital economic" id="economicText">17</div>
+        <div class="capital cultural" id="culturalText">3</div>
+        <div class="capital social" id="socialText">29</div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const BASE = { width: 1536, height: 1024 };
+
+    const tiers = [
+      {
+        title: "堅毅的冒險者",
+        character: "01_堅毅的冒險者.png",
+        badge: "01_冒險者徽章.png",
+        score: 18,
+        economic: 6,
+        cultural: 4,
+        social: 8,
+        color: "#b96b1a",
+        trait: [
+          "即使不知道前方有什麼，",
+          "仍願意踏出冒險的第一步。",
+          "你的勇氣，是旅程開始的光。"
+        ],
+        characterStyle: { w: "158%", x: "2%", y: "1%" },
+        badgeStyle: { w: "134%", x: "8%", y: "-12%" },
+        crop: { character: [398, 68, 749, 839], badge: [277, 54, 980, 927] },
+        draw: { character: [530, 292, 438, 430], badge: [1134, 594, 180, 180] }
+      },
+      {
+        title: "勤奮的挑戰者",
+        character: "02_勤奮的挑戰者.png",
+        badge: "02_挑戰者徽章.png",
+        score: 49,
+        economic: 17,
+        cultural: 3,
+        social: 29,
+        color: "#1f5f7a",
+        trait: [
+          "每一步都不容易，",
+          "但每一步都讓自己",
+          "更接近想去的地方。"
+        ],
+        characterStyle: { w: "153%", x: "2.5%", y: "1%" },
+        badgeStyle: { w: "138%", x: "8%", y: "-12%" },
+        crop: { character: [431, 87, 706, 815], badge: [301, 81, 933, 867] },
+        draw: { character: [536, 294, 430, 428], badge: [1136, 594, 178, 178] }
+      },
+      {
+        title: "踏實的旅人",
+        character: "03_踏實的旅人.png",
+        badge: "03_旅人徽章.png",
+        score: 62,
+        economic: 19,
+        cultural: 18,
+        social: 25,
+        color: "#2f7d5a",
+        trait: [
+          "慢慢前進也沒有關係，",
+          "穩穩走著的人，",
+          "也能抵達很遠的地方。"
+        ],
+        characterStyle: { w: "157%", x: "2.5%", y: "0%" },
+        badgeStyle: { w: "136%", x: "8%", y: "-12%" },
+        crop: { character: [367, 68, 801, 859], badge: [305, 52, 921, 888] },
+        draw: { character: [530, 286, 444, 436], badge: [1136, 594, 178, 178] }
+      },
+      {
+        title: "幸運的領航員",
+        character: "04_幸運的領航員.png",
+        badge: "04_領航員徽章.png",
+        score: 86,
+        economic: 26,
+        cultural: 25,
+        social: 35,
+        color: "#4f4aa7",
+        trait: [
+          "你常能看見新的可能，",
+          "也願意陪大家一起",
+          "找到前進的方向。"
+        ],
+        characterStyle: { w: "153%", x: "3%", y: "-1%" },
+        badgeStyle: { w: "140%", x: "8%", y: "-12%" },
+        crop: { character: [367, 69, 825, 918], badge: [271, 48, 986, 919] },
+        draw: { character: [532, 281, 438, 441], badge: [1134, 594, 180, 180] }
+      },
+      {
+        title: "傳說的勇者",
+        character: "05_傳說的勇者.png",
+        badge: "05_勇者徽章.png",
+        score: 104,
+        economic: 31,
+        cultural: 34,
+        social: 39,
+        color: "#b88418",
+        trait: [
+          "走得遠的人，",
+          "也願意陪更多人",
+          "一起走在冒險路上。"
+        ],
+        characterStyle: { w: "144%", x: "3.5%", y: "-2%" },
+        badgeStyle: { w: "132%", x: "7%", y: "-13%" },
+        crop: { character: [370, 45, 793, 953], badge: [297, 55, 936, 899] },
+        draw: { character: [550, 292, 394, 430], badge: [1138, 594, 176, 176] }
+      }
+    ];
+
+    const slots = {
+      name: [166, 300, 289, 68],
+      title: [1053, 223, 342, 88],
+      trait: [1076, 395, 303, 128],
+      score: [164, 453, 283, 116],
+      economic: [280, 894, 108, 50],
+      cultural: [623, 894, 108, 50],
+      social: [935, 894, 108, 50]
+    };
+
+    const els = {
+      select: document.getElementById("tierSelect"),
+      nameInput: document.getElementById("nameInput"),
+      scoreInput: document.getElementById("scoreInput"),
+      economicInput: document.getElementById("economicInput"),
+      culturalInput: document.getElementById("culturalInput"),
+      socialInput: document.getElementById("socialInput"),
+      name: document.getElementById("nameText"),
+      character: document.getElementById("characterImg"),
+      characterWrap: document.getElementById("characterWrap"),
+      title: document.getElementById("titleText"),
+      trait: document.getElementById("traitText"),
+      badge: document.getElementById("badgeImg"),
+      badgeWrap: document.getElementById("badgeWrap"),
+      score: document.getElementById("scoreText"),
+      economic: document.getElementById("economicText"),
+      cultural: document.getElementById("culturalText"),
+      social: document.getElementById("socialText"),
+      download: document.getElementById("downloadBtn")
+    };
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function currentValues() {
+      return {
+        name: els.nameInput.value.trim() || "冒險者",
+        score: els.scoreInput.value || "0",
+        economic: els.economicInput.value || "0",
+        cultural: els.culturalInput.value || "0",
+        social: els.socialInput.value || "0"
+      };
+    }
+
+    function setImageStyle(element, style) {
+      element.style.setProperty("--character-w", style.w);
+      element.style.setProperty("--character-x", style.x);
+      element.style.setProperty("--character-y", style.y);
+    }
+
+    function setBadgeStyle(style) {
+      els.badge.style.setProperty("--badge-w", style.w);
+      els.badge.style.setProperty("--badge-x", style.x);
+      els.badge.style.setProperty("--badge-y", style.y);
+    }
+
+    function applyTier(index, syncNumbers = true) {
+      const tier = tiers[index];
+      els.character.src = tier.character;
+      els.badge.src = tier.badge;
+      els.title.textContent = tier.title;
+      els.trait.innerHTML = tier.trait.map(escapeHtml).join("<br>");
+      setImageStyle(els.character, tier.characterStyle);
+      setBadgeStyle(tier.badgeStyle);
+
+      if (syncNumbers) {
+        els.scoreInput.value = tier.score;
+        els.economicInput.value = tier.economic;
+        els.culturalInput.value = tier.cultural;
+        els.socialInput.value = tier.social;
+      }
+      updateText();
+    }
+
+    function updateText() {
+      const values = currentValues();
+      els.name.textContent = values.name;
+      els.score.textContent = values.score;
+      els.economic.textContent = values.economic;
+      els.cultural.textContent = values.cultural;
+      els.social.textContent = values.social;
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    function fitContain(ctx, img, rect) {
+      const [x, y, w, h] = rect;
+      const scale = Math.min(w / img.width, h / img.height);
+      const dw = img.width * scale;
+      const dh = img.height * scale;
+      ctx.drawImage(img, x + (w - dw) / 2, y + h - dh, dw, dh);
+    }
+
+    function drawCropContain(ctx, img, crop, rect) {
+      const [sx, sy, sw, sh] = crop;
+      const [x, y, w, h] = rect;
+      const scale = Math.min(w / sw, h / sh);
+      const dw = sw * scale;
+      const dh = sh * scale;
+      ctx.drawImage(img, sx, sy, sw, sh, x + (w - dw) / 2, y + h - dh, dw, dh);
+    }
+
+    function drawCentered(ctx, text, rect, size, color) {
+      const [x, y, w, h] = rect;
+      ctx.fillStyle = color;
+      ctx.font = `900 ${size}px "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x + w / 2, y + h / 2);
+    }
+
+    function drawWrappedLines(ctx, lines, rect, size, color) {
+      const [x, y, w, h] = rect;
+      const lineHeight = size * 1.55;
+      const startY = y + (h - lineHeight * lines.length) / 2 + size * .62;
+      ctx.fillStyle = color;
+      ctx.font = `850 ${size}px "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      lines.forEach((line, index) => {
+        ctx.fillText(line, x, startY + index * lineHeight, w);
+      });
+    }
+
+    async function downloadCertificate() {
+      await document.fonts.ready;
+      const tier = tiers[Number(els.select.value)];
+      const values = currentValues();
+      const [background, character, badge] = await Promise.all([
+        loadImage("冒險證書_空白版_v6.png"),
+        loadImage(tier.character),
+        loadImage(tier.badge)
+      ]);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = BASE.width;
+      canvas.height = BASE.height;
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(background, 0, 0, BASE.width, BASE.height);
+      drawCropContain(ctx, character, tier.crop.character, tier.draw.character);
+      drawCropContain(ctx, badge, tier.crop.badge, tier.draw.badge);
+
+      drawCentered(ctx, values.name, slots.name, 54, "#4f2208");
+      drawCentered(ctx, tier.title, slots.title, 54, "#4b2208");
+      drawWrappedLines(ctx, tier.trait, slots.trait, 24, "#4b260b");
+      drawCentered(ctx, values.score, slots.score, 82, "#5b2608");
+      drawCentered(ctx, values.economic, slots.economic, 38, "#b56a16");
+      drawCentered(ctx, values.cultural, slots.cultural, 38, "#247b60");
+      drawCentered(ctx, values.social, slots.social, 38, "#b23862");
+
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `冒險證書_${values.name}_${tier.title}.png`;
+      a.click();
+    }
+
+    els.select.addEventListener("change", event => applyTier(Number(event.target.value)));
+    [els.nameInput, els.scoreInput, els.economicInput, els.culturalInput, els.socialInput].forEach(input => {
+      input.addEventListener("input", updateText);
+    });
+    els.download.addEventListener("click", () => {
+      downloadCertificate().catch(() => alert("下載失敗，請確認圖片檔案都在同一個資料夾。"));
+    });
+
+    applyTier(1);
+  </script>
+</body>
+</html>

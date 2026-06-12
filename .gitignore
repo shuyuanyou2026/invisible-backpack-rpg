@@ -1,0 +1,6 @@
+.gh-cli/
+.gitconfig-codex
+gh-login-output.txt
+gh-login-job.txt
+github-device-code.json
+*.tmp

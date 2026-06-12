@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>探索你的隱形背包｜證書排版測試</title>
+  <style>
+    :root {
+      --ink: #4b260b;
+      --brown: #6b3a14;
+      --gold: #b97716;
+      --blue: #1f5f7a;
+      --green: #2f7d5a;
+      --rose: #b23b61;
+      --page: #fffdf7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+      background: var(--page);
+    }
+
+    main {
+      width: min(100%, 1680px);
+      margin: 0 auto;
+      padding: 22px 18px 54px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .toolbar select,
+    .toolbar button {
+      min-height: 40px;
+      border: 1px solid #d7b779;
+      border-radius: 8px;
+      background: #fff8e8;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 700;
+      padding: 8px 12px;
+    }
+
+    .toolbar button {
+      cursor: pointer;
+      background: #7a4318;
+      color: #fff9e9;
+      box-shadow: 0 3px 8px rgba(70, 35, 10, .18);
+    }
+
+    .stage {
+      overflow-x: auto;
+      padding: 6px 0 22px;
+    }
+
+    .certificate {
+      position: relative;
+      width: min(100%, 1535px);
+      aspect-ratio: 1535 / 1024;
+      margin: 0 auto;
+      background-image: url("冒險證書_空白版_v6_排版測試.png");
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      isolation: isolate;
+    }
+
+    .certificate img {
+      display: block;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .name {
+      position: absolute;
+      left: 10.5%;
+      top: 29.2%;
+      width: 19.5%;
+      text-align: center;
+      color: #4f2208;
+      font-size: clamp(22px, 3.25vw, 55px);
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .character {
+      position: absolute;
+      left: 27.4%;
+      top: 22.1%;
+      width: 38.6%;
+      height: 56.4%;
+      object-fit: contain;
+      object-position: center bottom;
+      filter: drop-shadow(0 10px 12px rgba(80, 42, 10, .16));
+    }
+
+    .title-icon {
+      position: absolute;
+      left: 65.1%;
+      top: 25.2%;
+      width: 3.6%;
+      height: 5.6%;
+      object-fit: contain;
+    }
+
+    .title {
+      position: absolute;
+      left: 69.2%;
+      top: 25.2%;
+      width: 21.5%;
+      color: #4b2208;
+      font-size: clamp(24px, 3.45vw, 58px);
+      line-height: 1.06;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: left;
+      text-shadow: 0 2px 0 rgba(255, 246, 212, .8);
+      white-space: nowrap;
+    }
+
+    .trait {
+      position: absolute;
+      left: 67.8%;
+      top: 39.9%;
+      width: 23.8%;
+      font-size: clamp(13px, 1.35vw, 23px);
+      line-height: 1.72;
+      font-weight: 800;
+      letter-spacing: .02em;
+      color: #4b260b;
+    }
+
+    .badge {
+      position: absolute;
+      left: 71.2%;
+      top: 62.1%;
+      width: 13.8%;
+      height: 18.2%;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 8px rgba(65, 34, 8, .18));
+    }
+
+    .score {
+      position: absolute;
+      left: 10.7%;
+      top: 47.7%;
+      width: 18.2%;
+      text-align: center;
+      font-size: clamp(34px, 4.7vw, 78px);
+      line-height: 1;
+      color: #5b2608;
+      font-weight: 900;
+    }
+
+    .capital {
+      position: absolute;
+      top: 87%;
+      width: 7.2%;
+      text-align: center;
+      font-size: clamp(27px, 3.2vw, 54px);
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .capital.economic {
+      left: 18.7%;
+      color: #b56a16;
+    }
+
+    .capital.cultural {
+      left: 40.4%;
+      color: #247b60;
+    }
+
+    .capital.social {
+      left: 61.4%;
+      color: #b23862;
+    }
+
+    .note {
+      max-width: 940px;
+      margin: 16px auto 0;
+      color: #6f4a24;
+      font-size: 15px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        padding: 12px 8px 34px;
+      }
+
+      .stage {
+        padding-bottom: 12px;
+      }
+
+      .certificate {
+        min-width: 920px;
+      }
+
+      .note {
+        padding: 0 8px;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="toolbar" aria-label="證書排版測試工具">
+      <select id="tierSelect" aria-label="切換稱號">
+        <option value="0">01 堅毅的冒險者</option>
+        <option value="1" selected>02 勤奮的挑戰者</option>
+        <option value="2">03 踏實的旅人</option>
+        <option value="3">04 幸運的領航員</option>
+        <option value="4">05 傳說的勇者</option>
+      </select>
+      <button id="downloadBtn" type="button">下載證書測試圖</button>
+    </div>
+
+    <div class="stage">
+      <section class="certificate" id="certificate" aria-label="冒險證書排版測試">
+        <div class="name" id="nameText">Winter</div>
+        <img class="character" id="characterImg" alt="" src="02_勤奮的挑戰者.png" />
+        <img class="title-icon" id="titleIcon" alt="" src="02_挑戰者徽章.png" />
+        <div class="title" id="titleText">勤奮的挑戰者</div>
+        <div class="trait" id="traitText">
+          你是一位腳踏實地的冒險者。<br />
+          即使道路崎嶇，<br />
+          仍願意一步一步向前成長。<br />
+          你的每一次努力，<br />
+          都是實力最真實的證明。
+        </div>
+        <img class="badge" id="badgeImg" alt="" src="02_挑戰者徽章.png" />
+        <div class="score" id="scoreText">49</div>
+        <div class="capital economic" id="economicText">17</div>
+        <div class="capital cultural" id="culturalText">3</div>
+        <div class="capital social" id="socialText">29</div>
+      </section>
+    </div>
+
+    <p class="note">
+      這是證書排版測試頁：先確認角色、稱號、徽章與數字位置。正式網頁會在測驗完成後先顯示這張冒險證書，往下滑才進入冒險日誌，兩者分開下載。
+    </p>
+  </main>
+
+  <script>
+    const tiers = [
+      {
+        title: "堅毅的冒險者",
+        role: "冒險者",
+        character: "01_堅毅的冒險者.png",
+        badge: "01_冒險者徽章.png",
+        icon: "01_冒險者徽章.png",
+        score: 18,
+        economic: 6,
+        cultural: 4,
+        social: 8,
+        color: "#b96b1a",
+        trait: [
+          "你是一位勇敢出發的冒險者。",
+          "即使不知道前方有什麼，",
+          "仍願意踏出冒險的第一步。",
+          "你的希望與勇氣，",
+          "會慢慢照亮自己的道路。"
+        ]
+      },
+      {
+        title: "勤奮的挑戰者",
+        role: "挑戰者",
+        character: "02_勤奮的挑戰者.png",
+        badge: "02_挑戰者徽章.png",
+        icon: "02_挑戰者徽章.png",
+        score: 49,
+        economic: 17,
+        cultural: 3,
+        social: 29,
+        color: "#1f5f7a",
+        trait: [
+          "你是一位腳踏實地的冒險者。",
+          "即使道路崎嶇，",
+          "仍願意一步一步向前成長。",
+          "你的每一次努力，",
+          "都是實力最真實的證明。"
+        ]
+      },
+      {
+        title: "踏實的旅人",
+        role: "旅人",
+        character: "03_踏實的旅人.png",
+        badge: "03_旅人徽章.png",
+        icon: "03_旅人徽章.png",
+        score: 62,
+        economic: 19,
+        cultural: 18,
+        social: 25,
+        color: "#2f7d5a",
+        trait: [
+          "你是一位穩定探索的旅人。",
+          "慢慢前進，",
+          "也能走到很遠的地方。",
+          "你能看見方向，",
+          "也懂得照顧自己的步伐。"
+        ]
+      },
+      {
+        title: "幸運的領航員",
+        role: "領航員",
+        character: "04_幸運的領航員.png",
+        badge: "04_領航員徽章.png",
+        icon: "04_領航員徽章.png",
+        score: 86,
+        economic: 26,
+        cultural: 25,
+        social: 35,
+        color: "#4f4aa7",
+        trait: [
+          "你是一位發現可能的領航員。",
+          "總能看見新的方向，",
+          "也願意帶領大家前進。",
+          "你的視野與機會，",
+          "能成為隊伍裡的光。"
+        ]
+      },
+      {
+        title: "傳說的勇者",
+        role: "勇者",
+        character: "05_傳說的勇者.png",
+        badge: "05_勇者徽章.png",
+        icon: "05_勇者徽章.png",
+        score: 104,
+        economic: 31,
+        cultural: 34,
+        social: 39,
+        color: "#b88418",
+        trait: [
+          "你是一位願意陪伴他人的勇者。",
+          "走得遠的人，",
+          "也願意陪更多人一起走。",
+          "真正成熟的力量，",
+          "是分享、責任與陪伴。"
+        ]
+      }
+    ];
+
+    const els = {
+      select: document.getElementById("tierSelect"),
+      name: document.getElementById("nameText"),
+      character: document.getElementById("characterImg"),
+      icon: document.getElementById("titleIcon"),
+      title: document.getElementById("titleText"),
+      trait: document.getElementById("traitText"),
+      badge: document.getElementById("badgeImg"),
+      score: document.getElementById("scoreText"),
+      economic: document.getElementById("economicText"),
+      cultural: document.getElementById("culturalText"),
+      social: document.getElementById("socialText"),
+      download: document.getElementById("downloadBtn")
+    };
+
+    function applyTier(index) {
+      const tier = tiers[index];
+      els.character.src = tier.character;
+      els.icon.src = tier.icon;
+      els.badge.src = tier.badge;
+      els.title.textContent = tier.title;
+      els.title.style.color = "#4b2208";
+      els.trait.innerHTML = tier.trait.map(line => line.replace(/[&<>"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[c]))).join("<br>");
+      els.score.textContent = tier.score;
+      els.economic.textContent = tier.economic;
+      els.cultural.textContent = tier.cultural;
+      els.social.textContent = tier.social;
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    function fitContain(ctx, img, x, y, w, h) {
+      const scale = Math.min(w / img.width, h / img.height);
+      const dw = img.width * scale;
+      const dh = img.height * scale;
+      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh), dw, dh);
+    }
+
+    function drawCentered(ctx, text, x, y, w, size, color) {
+      ctx.fillStyle = color;
+      ctx.font = `900 ${size}px "Microsoft JhengHei", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x + w / 2, y);
+    }
+
+    async function downloadCertificate() {
+      const tier = tiers[Number(els.select.value)];
+      const [background, character, badge] = await Promise.all([
+        loadImage("冒險證書_空白版_v6_排版測試.png"),
+        loadImage(tier.character),
+        loadImage(tier.badge)
+      ]);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 1535;
+      canvas.height = 1024;
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(background, 0, 0, 1535, 1024);
+      fitContain(ctx, character, 420, 226, 592, 578);
+      fitContain(ctx, badge, 1092, 636, 212, 186);
+      fitContain(ctx, badge, 1000, 258, 56, 58);
+
+      drawCentered(ctx, "Winter", 161, 350, 300, 55, "#4f2208");
+
+      ctx.fillStyle = "#4b2208";
+      ctx.font = "900 58px 'Microsoft JhengHei', sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(tier.title, 1062, 292);
+
+      ctx.fillStyle = "#4b260b";
+      ctx.font = "800 25px 'Microsoft JhengHei', sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      tier.trait.forEach((line, i) => ctx.fillText(line, 1040, 408 + i * 40));
+
+      drawCentered(ctx, String(tier.score), 164, 522, 280, 78, "#5b2608");
+      drawCentered(ctx, String(tier.economic), 287, 927, 112, 54, "#b56a16");
+      drawCentered(ctx, String(tier.cultural), 620, 927, 112, 54, "#247b60");
+      drawCentered(ctx, String(tier.social), 942, 927, 112, 54, "#b23862");
+
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `證書排版測試_${tier.title}.png`;
+      a.click();
+    }
+
+    els.select.addEventListener("change", event => applyTier(Number(event.target.value)));
+    els.download.addEventListener("click", () => {
+      downloadCertificate().catch(() => alert("下載失敗，請先確認圖片檔案都在同一個資料夾內。"));
+    });
+  </script>
+</body>
+</html>

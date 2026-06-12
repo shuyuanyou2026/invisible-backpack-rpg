@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>探索你的隱形背包｜互動地圖整合版</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --ink:#4b260b; --brown:#6b3a14; --gold:#b97716; --cream:#fff8e8;
+      --eco:#b56a16; --cul:#247b60; --soc:#b23862;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif; background:#fffdf7; color:var(--ink); }
+    button,input { font:inherit; }
+    .app { min-height:100vh; }
+    .screen-bg { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:#e6b47d; }
+    .frame { position:relative; width:min(100%,1280px); aspect-ratio:16/9; border-radius:24px; overflow:hidden; box-shadow:0 18px 40px rgba(60,25,5,.22); background-size:100% 100%; background-position:center; }
+    .cover { background-image:url("封面(1).png"); }
+    .time { background-image:url("時光回溯(1).png"); }
+    .map { background-image:url("大地圖(1).png"); }
+    .glass-panel { position:absolute; left:18%; right:18%; bottom:14%; background:rgba(255,250,232,.88); border:3px solid rgba(117,67,24,.35); border-radius:26px; padding:22px; text-align:center; box-shadow:0 8px 18px rgba(70,30,0,.12); }
+    .field-row { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+    .field-row input { width:min(100%,260px); padding:12px 16px; border:2px solid #d4ad68; border-radius:14px; background:#fffdf6; font-weight:800; color:var(--ink); }
+    .main-btn { border:0; border-radius:999px; background:#7a4318; color:#fff9e9; padding:13px 24px; font-weight:900; cursor:pointer; box-shadow:0 6px 12px rgba(55,20,0,.22); }
+    .main-btn:disabled { background:#aaa; cursor:not-allowed; }
+    .name-board { position:absolute; left:42%; top:8%; width:27%; text-align:center; font-size:clamp(24px,4vw,54px); font-weight:900; color:#5a2b0a; transform:rotate(.5deg); }
+    .time-copy { position:absolute; left:22%; right:22%; bottom:26%; text-align:center; font-size:clamp(20px,3vw,42px); font-weight:900; color:#5a2b0a; line-height:1.45; }
+    .time-start-btn { position:absolute; left:50%; bottom:11%; transform:translateX(-50%); font-size:clamp(18px,2vw,28px); }
+    .map-title { position:absolute; left:30%; right:30%; top:7%; text-align:center; font-size:clamp(22px,2.8vw,44px); font-weight:900; color:#5a2b0a; }
+    .map-hint { display:none; }
+    .map-node { position:absolute; transform:translate(-50%,-50%); border:0; border-radius:999px; padding:8px 14px; background:rgba(255,255,255,.75); color:#5a2b0a; font-weight:900; box-shadow:0 4px 10px rgba(70,30,0,.2); opacity:.65; }
+    .map-node.active { background:#fff2a8; outline:5px solid rgba(255,209,58,.7); opacity:1; animation:pulse 1.1s infinite alternate; }
+    .map-node.done { background:#dcfce7; opacity:1; }
+    .map-node.locked { background:rgba(190,190,190,.7); color:#666; }
+    @keyframes pulse { from { transform:translate(-50%,-50%) scale(1); } to { transform:translate(-50%,-50%) scale(1.08); } }
+    .map-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+    .path { fill:none; stroke:#6b3a14; stroke-width:7; stroke-linecap:round; stroke-dasharray:14 18; opacity:.85; filter:drop-shadow(0 2px 0 rgba(255,245,190,.75)); }
+    .path.show { animation:drawPath 1.2s ease-out both; }
+    @keyframes drawPath { from { stroke-dashoffset:240; opacity:.05; } to { stroke-dashoffset:0; opacity:.9; } }
+    .map-action { position:absolute; left:50%; bottom:6%; transform:translateX(-50%); display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+    .score-header { position:fixed; left:0; right:0; top:0; z-index:1000; height:84px; background:rgba(255,255,255,.96); box-shadow:0 3px 10px rgba(80,40,8,.12); display:flex; align-items:center; justify-content:space-around; gap:18px; padding:10px 7vw; }
+    .score-pill { min-width:130px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:900; line-height:1.15; }
+    .score-pill .icon { font-size:24px; }
+    .score-pill.economic { color:var(--eco); } .score-pill.cultural { color:var(--cul); } .score-pill.social { color:var(--soc); }
+    .score-progress { flex:1; max-width:520px; min-width:220px; }
+    .score-progress .label { text-align:right; font-size:14px; color:#6b7280; margin-bottom:6px; font-weight:800; }
+    .score-progress .track { height:12px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+    .score-progress .fill { height:100%; background:#f59e0b; border-radius:999px; transition:.25s; }
+    .play-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:116px 20px 32px; background:#fffdf7; }
+    .card { width:min(100%,760px); margin:0 auto; background:white; border-radius:28px; padding:28px; box-shadow:0 10px 26px rgba(90,45,10,.14); border:3px solid #f0d59a; }
+    .progress { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:16px; font-weight:900; }
+    .bar { flex:1; height:12px; background:#f1e4ca; border-radius:999px; overflow:hidden; }
+    .bar > div { height:100%; background:#b97716; transition:.25s; }
+    .qbox { text-align:center; padding:24px; border-radius:22px; background:#fff8e8; min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .qicon { font-size:56px; }
+    .qtext { font-size:clamp(20px,2.5vw,30px); font-weight:900; line-height:1.55; }
+    .answer-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px; }
+    .answer-grid button { border:3px solid #e7c684; border-radius:22px; padding:20px 10px; background:#fffdf6; font-weight:900; font-size:20px; cursor:pointer; }
+    .answer-grid button.yes { background:#ecfdf5; border-color:#a7f3d0; color:#047857; }
+    .answer-grid button.no { background:#fff1f2; border-color:#fecdd3; color:#be123c; }
+    .feedback { text-align:center; font-size:20px; line-height:1.75; font-weight:800; }
+    .result-wrap { width:min(100%,1580px); margin:0 auto; padding:24px 16px 70px; }
+    .certificate { position:relative; width:min(100%,1535px); aspect-ratio:1535/1024; margin:0 auto 28px; background-image:url("冒險證書_空白版_v6_排版測試.png"); background-size:100% 100%; background-repeat:no-repeat; }
+    .certificate img { position:absolute; display:block; user-select:none; pointer-events:none; object-fit:contain; }
+    .cert-name { position:absolute; left:10.6%; top:30.4%; width:19.5%; text-align:center; color:#4f2208; font-size:clamp(20px,3vw,50px); line-height:1; font-weight:900; }
+    .cert-character { left:28.1%; top:23.2%; width:36.8%; height:54.2%; object-position:center bottom; filter:drop-shadow(0 10px 12px rgba(80,42,10,.16)); }
+    .cert-title-icon { left:66.2%; top:26.4%; width:3.2%; height:5.2%; }
+    .cert-title { position:absolute; left:68.8%; top:26.3%; width:22.5%; color:#4b2208; font-size:clamp(22px,3vw,50px); line-height:1.06; font-weight:900; text-align:center; white-space:nowrap; }
+    .cert-trait { position:absolute; left:67.6%; top:40.8%; width:23.8%; font-size:clamp(12px,1.25vw,21px); line-height:1.66; font-weight:800; color:#4b260b; }
+    .cert-badge { left:72.2%; top:62.8%; width:12.8%; height:17.2%; filter:drop-shadow(0 6px 8px rgba(65,34,8,.18)); }
+    .cert-score { position:absolute; left:11.1%; top:48.8%; width:18.2%; text-align:center; font-size:clamp(32px,4.2vw,70px); line-height:1; color:#5b2608; font-weight:900; }
+    .cert-capital { position:absolute; top:87.8%; width:7.2%; text-align:center; font-size:clamp(25px,2.9vw,48px); line-height:1; font-weight:900; }
+    .cert-capital.economic { left:18.6%; color:var(--eco); } .cert-capital.cultural { left:40.3%; color:var(--cul); } .cert-capital.social { left:61.2%; color:var(--soc); }
+    .result-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:18px 0 34px; }
+    .journal { width:min(100%,1040px); margin:0 auto; background:white; border-radius:28px; padding:28px; box-shadow:0 10px 26px rgba(90,45,10,.14); border:3px solid #f0d59a; }
+    .journal h2 { font-size:32px; margin:0 0 14px; }
+    .journal-section { border-top:2px dashed #d7b779; padding-top:18px; margin-top:18px; }
+    .journal-text { font-size:18px; line-height:1.9; color:#4b260b; }
+    .journal-callout { background:#fff8e8; border-left:8px solid #d59a2f; border-radius:16px; padding:16px 18px; margin:12px 0; }
+    .journal-callout.slate { background:#f8fafc; border-left-color:#94a3b8; }
+    .tier-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .tier-card { border:2px solid #ecd19a; border-radius:16px; background:#fffaf0; padding:14px; text-align:center; font-weight:800; }
+    .tier-card.active { background:#ffe8a3; border-color:#c47a18; box-shadow:0 4px 14px rgba(110,65,15,.18); }
+    .capital-explain { margin-top:12px; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+    .capital-explain .mini-card { text-align:left; line-height:1.7; }
+    .bag-group { margin:12px 0; padding:14px; border-radius:16px; border:2px solid #ecd19a; background:#fffdf7; }
+    .bag-group h4 { margin:0 0 8px; font-size:19px; }
+    .capital-list { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .mini-card { background:#fff8e8; border-radius:18px; padding:16px; font-weight:900; text-align:center; }
+    .bag-list { columns:2; column-gap:28px; line-height:1.9; }
+    @media (max-width:760px) {
+      .frame { min-width:900px; } .screen-bg { align-items:flex-start; overflow-x:auto; }
+      .score-header { height:auto; flex-wrap:wrap; padding:8px; position:sticky; } .score-pill { min-width:82px; } .play-screen { padding-top:28px; }
+      .answer-grid,.capital-list { grid-template-columns:1fr; } .bag-list { columns:1; }
+      .certificate { min-width:920px; } .result-wrap { overflow-x:auto; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  const GOOGLE_SCRIPT_URL = ""; // 之後貼上 Google Apps Script Web App URL
+  window.submitToGoogleSheet = async (data) => {
+    if (!GOOGLE_SCRIPT_URL) { console.log("未設定 Google Script URL，略過上傳", data); return; }
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data) });
+    } catch(e) { console.error("上傳失敗", e); }
+  };
+</script>
+<script type="text/babel">
+  const { useEffect, useMemo, useRef, useState } = React;
+
+  const questionsData = [
+            // 第一區：物資補給箱 (Economic)
+            { id: 1, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我擁有自己的房間，不需要跟其他人共用。", type: "economic", weight: 1, yesText: "擁有獨立安靜的空間，能讓你更專心休息與學習，這是很棒的環境優勢！", noText: "雖然需要分享空間，但這讓你學會了在熱鬧中專注，以及與人協調相處的能力，這是很強的適應力！" },
+            { id: 2, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我擁有屬於自己使用的電腦或平板。", type: "economic", weight: 1, yesText: "數位工具是現代學習的神器。擁有專屬設備，代表你不用排隊等待，學習效率加倍！", noText: "資源有限時，你學會了等待與珍惜使用的時間。這種「把握當下」的專注力，是誰也搶不走的寶藏。" },
+            { id: 3, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我可以輕易買到適合我尺寸的衣服和鞋子。", type: "economic", weight: 1, yesText: "這代表你是社會眼中的「標準身材」，不用為了穿什麼而感到焦慮，這是一種隱形的便利。", noText: "標準是工廠訂的，美是你自己定義的。雖然買衣服比較麻煩，但這也讓你更有機會穿出獨特風格。" },
+            { id: 4, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我不需要經常去醫院看醫生或做復健（身體健康）。", type: "economic", weight: 1, yesText: "健康的身體幫你省下了大量的時間與金錢，讓你有更多精力去探索世界。", noText: "與身體的不適共處，讓你比同齡人更早學會聆聽身體的聲音，你的意志力是鋼鐵做的！" },
+            { id: 5, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我家裡有請人幫忙打掃，或是定期有鐘點工來做家事。", type: "economic", weight: 3, yesText: "把家事外包，讓全家人多了寶貴的休息時間。記得感謝幫你服務的人，時間就是金錢！", noText: "你可能從小就要幫忙做家事，這讓你比同齡的人更早學會照顧自己與分擔責任，你是家裡的超人！" },
+            { id: 6, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我家裡有兩輛以上的汽車。", type: "economic", weight: 3, yesText: "交通便利讓你移動更自由，省下來的通勤時間可以用來做更多喜歡的事。", noText: "搭公車或走路雖然花時間，但也讓你更熟悉這座城市，還能觀察形形色色的人，這是開車看不到的風景。" },
+            { id: 7, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我有做過牙齒矯正（戴牙套），或是曾經接受過自費的心理諮商、視力矯正等療程（代表家裡有餘力負擔健保以外的額外身心健康投資）。", type: "economic", weight: 3, yesText: "這是對身心健康的額外投資，代表家裡有餘力照顧你的自信心與情緒，這是非常珍貴的禮物。", noText: "自信的笑容來自於內心的快樂，而不是牙齒的排列。你最自然的樣子，就是獨一無二的，不需要昂貴的療程來定義你的價值。" },
+            { id: 8, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我家裡有熱門的遊戲主機（Switch, PS5 等）。", type: "economic", weight: 5, yesText: "擁有熱門遊戲讓你更容易跟同學有共同話題，這是建立友誼的一種社交優勢喔。", noText: "雖然不能在家玩，但你會發明不用插電也好玩的遊戲，或是更珍惜去朋友家玩的時光，你是大家的點子王！" },
+            { id: 9, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我家裡在台北市（或大都會蛋黃區）有房子。", type: "economic", weight: 5, yesText: "住在資源豐富的市中心，圖書館、博物館、補習班都在附近，這是一種強大的「地點優勢」。", noText: "雖然住得遠一點，但也許你有更寬闊的天空。網路讓知識沒有距離，只要你想學，哪裡都是蛋黃區。" },
+            { id: 10, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "爸媽有幫我存股票、基金，或是繳儲蓄險。", type: "economic", weight: 5, yesText: "這就像遊戲裡的「復活金幣」，代表你未來就算失敗了，還有本錢可以重新開始。", noText: "你就是自己最大的本錢！靠自己雙手打拚出來的未來，會讓你更自豪，每一分收穫都實實在在。" },
+            { id: 11, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我搭飛機時，坐過商務艙以上的位子。", type: "economic", weight: 5, yesText: "這是一種極少數人能體驗的舒適與尊榮感，是經濟資本帶來的特別禮遇。", noText: "經濟艙雖然擠一點，但到達的目的地是一樣的。能在天空中飛行本身就是奇蹟，享受旅程比座位更重要！" },
+
+            // 第二區：天賦技能樹 (Cultural)
+            { id: 12, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "爸媽會鼓勵我多看課外讀物，家裡也有很多書。", type: "cultural", weight: 1, yesText: "家裡的書櫃是你最早的圖書館，閱讀習慣是你一輩子帶著走的智慧寶庫。", noText: "學校圖書館是永遠為你敞開的寶庫。你主動去借書的那份求知慾，比家裡有書卻不看更珍貴。" },
+            { id: 13, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我有接受過一對一的家教教學（學科或才藝皆可）。", type: "cultural", weight: 3, yesText: "這就像遊戲裡有專屬教練指導，能幫你快速解決卡關的難題，是高效的學習外掛。", noText: "你靠自己在學校聽講、問同學來解決問題。這種「靠自己找答案」的能力，是未來的生存關鍵。" },
+            { id: 14, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我參加過需要付費的營隊、資優班或外語檢定培訓。", type: "cultural", weight: 3, yesText: "這些額外的經驗能幫你探索興趣，這需要家裡有額外的預算支持才能獲得。", noText: "你的興趣是發自內心的熱情，而不是用錢堆出來的。網路上的免費資源，一樣能讓你變強！" },
+            { id: 15, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我有學過樂器、舞蹈或畫畫（藝術相關技能），並且持續一年以上。", type: "cultural", weight: 3, yesText: "藝術素養是進入某些社交圈的「通關密語」，也能豐富你的心靈生活。", noText: "哼歌、塗鴉也是藝術。你的創造力來自於生活，那是發自內心最真實的聲音。" },
+            { id: 16, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "爸媽是大學畢業以上。", type: "cultural", weight: 3, yesText: "爸媽的學歷讓他們更懂得如何引導你在學校「闖關」，他們是你最好的攻略本。", noText: "學歷不代表智慧。爸媽用他們的方式努力生活，這就是最棒的身教。你也會走出屬於自己的路。" },
+            { id: 17, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我讀過雙語學校或國際學校。", type: "cultural", weight: 3, yesText: "這些學校資源豐富，還能讓你提早累積特定的人脈，是強大的菁英公會。", noText: "公立學校是真實社會的縮影，讓你認識各式各樣的朋友。這種「與不同人相處」的能力是無價的。" },
+            { id: 18, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我有學過網球、高爾夫球、滑雪或潛水。", type: "cultural", weight: 5, yesText: "這些運動門檻較高，能接觸它們，代表你的背包裡裝著稀有的體驗券。", noText: "跑步、打球、跳繩也能帶來快樂！運動的本質是享受汗水，你的強壯體魄就是最好的裝備。" },
+            { id: 19, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我去過美國、加拿大、歐洲或紐澳等國家旅行。", type: "cultural", weight: 5, yesText: "長途旅行需要時間與金錢，這些獨特的見聞會成為你未來與人交流的養分。", noText: "透過電影和書本，你一樣可以認識世界。你的眼界取決於你的好奇心，而不是飛機票。" },
+            { id: 20, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "家裡有計畫未來送我出國讀書。", type: "cultural", weight: 5, yesText: "這是長遠的未來規劃，代表家裡有能力為你鋪設一條通往國際的道路。", noText: "留學不是唯一的路。保持開放的心，你在台灣也能成為世界級的人才。你的努力決定你的高度。" },
+            { id: 21, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我擁有雙重國籍，或是其他國家的永久居留權。", type: "cultural", weight: 5, yesText: "這給了你未來選擇居住地的自由，就像擁有了通往另一個伺服器的鑰匙。", noText: "深耕這片土地，成為這裡的守護者與建設者，也是一種很棒的選擇。" },
+
+            // 第三區：盟友守護陣 (Social)
+            { id: 22, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "晚上補習或去便利商店回家時，我通常不會覺得害怕。", type: "social", weight: 1, yesText: "不用擔心人身安全，讓你擁有探索夜晚世界的自由與獨立性。", noText: "你的恐懼是自我保護的本能。這份謹慎讓你避開危險，但也請記得，你有權利安全地生活。" },
+            { id: 23, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我在學校可以不穿制服進出校門（或學校風氣很自由）。", type: "social", weight: 1, yesText: "學校信任學生的判斷力，給予身體自主權，這是一種對「成熟」的肯定。", noText: "在制服的規範下，你依然可以用配件或才華展現個性，這才是真正的「自帶光芒」。" },
+            { id: 24, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我可以輕鬆走進任何一家商店或教室（無障礙設施完善）。", type: "social", weight: 1, yesText: "這代表社會的建築設計，原本就是為了歡迎你而蓋的，你擁有「移動的特權」。", noText: "每一次出門都是障礙賽，你比任何人都懂得規劃與堅持。如果世界不夠友善，你的存在就是在提醒大家改變。" },
+            { id: 25, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "當我難過時，家裡有人願意聽我說話、給我擁抱。", type: "social", weight: 3, yesText: "情感支持是無價的「盟友徽章」，知道背後有人挺你，會讓你更有勇氣面對挑戰。", noText: "如果家裡暫時給不了支持，試著找老師或好朋友當盟友。你值得被溫柔對待，這不是你的錯。" },
+            { id: 26, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我家裡的氣氛通常很平靜，沒有冷暴力或大聲吵架。", type: "social", weight: 3, yesText: "平靜的家是最強大的防護罩，讓你的大腦可以放鬆，不用隨時處於「戰鬥」狀態。", noText: "面對家裡的紛爭，你學會了察言觀色與保護自己。這很辛苦，但也讓你變得早熟且堅強。" },
+            { id: 27, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "家人不會嚴重偏心，也不會拿我跟別人做貶低的比較。", type: "social", weight: 3, yesText: "這保護了你的自尊心，讓你知道「我就是我」，不需要為了討好誰而活。", noText: "別人的評價不代表你的價值。你心裡要有一個聲音告訴自己：「我已經很棒了。」" },
+            { id: 28, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我家裡沒有需要特別花心力照顧的生病家人。", type: "social", weight: 3, yesText: "不用提早當「小大人」照顧家人，讓你有時間好好當個孩子，專注在自己的成長上。", noText: "你比同齡孩子承擔了更多責任，辛苦了。這份貼心讓你成為一個很有愛與責任感的人。" },
+            { id: 29, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我和爸媽走在路上看到警察時，會覺得很安心，不會害怕。", type: "social", weight: 3, yesText: "這代表你的身分符合社會對「好人」的想像，擁有免於恐懼的自由。", noText: "這種不安不是你的錯。你的警覺心保護了你，但也請相信，依然有人願意公正地對待你。" },
+            { id: 30, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我在學校犯錯時，老師通常願意聽我解釋，不會馬上貼我標籤。", type: "social", weight: 3, yesText: "好的師生關係是強大的防護網，讓你即使跌倒了，也有機會被扶起來。", noText: "被誤解很難受，但你的行為由你自己決定。用時間和行動證明真正的你，不要被標籤打敗。" },
+            { id: 31, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我不曾因為我的名字、口音或長相被同學取笑。", type: "social", weight: 3, yesText: "這代表你的特質被大眾接納，不需要花力氣去隱藏自己或對抗嘲笑。", noText: "嘲笑是因為無知。你的名字或口音是你獨特的根源，為自己的不一樣感到驕傲吧！" },
+            { id: 32, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "打開課本或電視時，裡面的主角或英雄通常長得像我。", type: "social", weight: 3, yesText: "這讓你潛意識相信「我也能成為英雄」，對未來的想像充滿希望。", noText: "如果螢幕上還沒有像你的英雄，那就由你來當第一個！世界需要更多像你這樣的主角。" },
+            { id: 33, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "學校放假的日子，通常就是我家裡過節的日子。", type: "social", weight: 3, yesText: "這代表你的文化是社會的主流，不用在「學校規定」與「家庭傳統」之間為難。", noText: "雖然請假有點麻煩，但能慶祝屬於自己獨特文化的節日，是很酷也很值得驕傲的事。" },
+            { id: 34, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "只要報出我們學校的名字，外校的人就會覺得我很厲害。", type: "social", weight: 5, yesText: "學校的招牌變成了你的「光環」，讓你還沒開口就先獲得了信任與佩服。", noText: "沒有名校光環，代表別人是因為「真正的你」而佩服你。靠實力贏來的尊重更紮實。" },
+            { id: 35, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我知道有很多厲害的學長姐或親戚，將來可能會照顧我。", type: "social", weight: 5, yesText: "強大的社會網絡就像遊戲裡的「公會」，能為你未來的升學或求職開拓道路。", noText: "你可以成為那個「厲害的學長姐」！沒有現成的路，就自己開一條，建立屬於你的傳奇公會。" }
+        ];
+
+  const levelMeta = [
+    { id:1, type:"economic", icon:"💰", name:"物資補給箱", intro:"第一站，看看你的背包裡有哪些生活資源。" },
+    { id:2, type:"cultural", icon:"📜", name:"天賦技能樹", intro:"第二站，看看你曾經累積哪些學習與文化經驗。" },
+    { id:3, type:"social", icon:"🛡️", name:"盟友守護陣", intro:"第三站，看看你身邊有哪些支持與保護。" },
+  ];
+
+  const tiers = [
+    {
+      min: 0, max: 25, label: "0 ~ 25分", icon: "🏅",
+      title: "堅毅的冒險者", mode: "🔥 地獄極限模式 (Extreme Survival Mode)", role: "冒險者", core: "勇敢出發", keywords: "韌性、希望、勇氣",
+      character: "01_堅毅的冒險者(4).png", badge: "01_冒險者徽章.png", scoreName: "困難開局",
+      trait: ["你是一位勇敢出發的冒險者。", "即使不知道前方有什麼，", "仍願意踏出冒險的第一步。", "你的希望與勇氣，", "會慢慢照亮自己的道路。"],
+      status: "你的背包非常沉重，裡面可能只有最基本的生存物資，甚至還背負著照顧他人的責任。這讓你必須比別人更努力、更小心才能前進。",
+      advice: "這一路走來真的不容易，請為你還站在這裡感到驕傲。你正在玩這場遊戲最困難的模式，這鍛鍊出你超乎常人的韌性與生存智慧。這些是金錢買不到的寶藏。請相信，你的起點不決定你的終點，尋找像老師這樣值得信任的盟友，你絕對有能力走出屬於自己的傳奇路徑。",
+      story: "你完成了物資補給箱、天賦技能樹與盟友守護陣三段旅程。這份日誌記錄的不是勝負，而是你如何理解自己的起點：你正在以很不容易的開局前進，卻仍然願意出發。"
+    },
+    {
+      min: 26, max: 50, label: "26 ~ 50分", icon: "🥉",
+      title: "勤奮的挑戰者", mode: "⚔️ 困難挑戰模式 (Hard Mode)", role: "挑戰者", core: "持續成長", keywords: "努力、堅持、突破",
+      character: "02_勤奮的挑戰者(3).png", badge: "02_挑戰者徽章.png", scoreName: "挑戰開局",
+      trait: ["你是一位腳踏實地的冒險者。", "即使道路崎嶇，", "仍願意一步一步向前成長。", "你的每一次努力，", "都是實力最真實的證明。"],
+      status: "你的背包裡有一些基礎道具，但路途依然崎嶇，常常需要為了資源而精打細算。你過得並不輕鬆，但也因為這樣，你更懂得珍惜每一分收穫。",
+      advice: "你是一個腳踏實地的玩家。你知道什麼是「努力就有收穫」的感覺，但也體會過資源不足的無奈。這種同理心是你最大的優勢。請繼續保持你的勤奮，同時多觀察周遭的機會，你的每一次升級都是紮紮實實的實力證明。",
+      story: "你完成了三段冒險，也累積了屬於自己的裝備。你的旅程有坡度，也有能使用的道具；每一次往前，都不是憑空得來，而是靠你一次又一次的嘗試。"
+    },
+    {
+      min: 51, max: 75, label: "51 ~ 75分", icon: "🥈",
+      title: "踏實的旅人", mode: "⚖️ 標準平衡模式 (Normal Mode)", role: "旅人", core: "穩定探索", keywords: "平衡、探索、方向",
+      character: "03_踏實的旅人(3).png", badge: "03_旅人徽章.png", scoreName: "平衡開局",
+      trait: ["你是一位穩定探索的旅人。", "慢慢前進，", "也能走到很遠的地方。", "你能看見方向，", "也懂得照顧自己的步伐。"],
+      status: "你的裝備平衡且實用，雖沒有傳說級的神裝，但足以應付大多數的關卡。你擁有穩定的力量，可以按部就班地完成目標。",
+      advice: "你是這個社會的中堅力量。你的背包重量適中，這讓你既能理解資源匱乏者的辛苦，也能想像資源豐富者的生活。善用這份「中間視角」，成為連結不同群體的橋樑。你的穩定與友善，能讓這個隊伍走得更遠。",
+      story: "你完成了三段旅程，背包裡有穩定的資源，也保留繼續探索的空間。你很適合成為理解不同處境的橋樑，慢慢走，也能走到很遠的地方。"
+    },
+    {
+      min: 76, max: 100, label: "76 ~ 100分", icon: "🍀",
+      title: "幸運的領航員", mode: "🍀 幸運加成模式 (Lucky Mode)", role: "領航員", core: "發現可能", keywords: "視野、機會、引導",
+      character: "04_幸運的領航員.png", badge: "04_領航員徽章.png", scoreName: "幸運開局",
+      trait: ["你是一位發現可能的領航員。", "總能看見新的方向，", "也願意帶領大家前進。", "你的視野與機會，", "能成為隊伍裡的光。"],
+      status: "你的運氣很好，背包裡裝了許多稀有道具，這讓你比別人少走很多彎路，視野也更開闊。你可以更專注在探索未知的地圖。",
+      advice: "恭喜你抽到了很好的開局手牌！請記得，這些優勢大多是運氣帶來的，而非單純是你個人的功勞。請保持謙虛與感恩。試著成為隊伍中的領航員，利用你的視野與資源，主動移除路上的障礙，讓隊友們也能順利前進。",
+      story: "你完成了三段旅程，也看見自己擁有比較多路線與機會。領航員的價值，不只是看得遠，而是能把自己看見的方向分享給更多人。"
+    },
+    {
+      min: 101, max: 999, label: "101分以上", icon: "👑",
+      title: "傳說的勇者", mode: "👑 創世無敵模式 (God / Creative Mode)", role: "勇者", core: "分享與陪伴", keywords: "責任、陪伴、分享",
+      character: "05_傳說的勇者.png", badge: "05_勇者徽章.png", scoreName: "豐富開局",
+      trait: ["你是一位願意陪伴他人的勇者。", "走得遠的人，", "也願意陪更多人一起走。", "真正成熟的力量，", "是分享、責任與陪伴。"],
+      status: "哇！你幾乎擁有全套的神級裝備與強大的公會保護。你在遊戲中就像開了外掛，擁有改變規則的能力，世界對你來說充滿了無限可能。",
+      advice: "擁有這樣的力量是一種巨大的責任。請小心不要因為過得太順遂，而誤以為別人的失敗是因為「不夠努力」。你的任務不僅僅是過關，而是「改變遊戲規則」。你有能力讓這個世界變得對所有人都更公平、更友善。請成為那位守護弱者的真正的英雄。",
+      story: "你完成了三段旅程，背包裡有非常多裝備與支持。傳說的勇者不是最強的人，而是懂得把力量化為陪伴、責任與分享的人。"
+    }
+  ];
+  const maxScores = { economic:33, cultural:36, social:40, total:109 };
+
+  function getTier(total) { return tiers.find(t => total >= t.min && total <= t.max) || tiers[0]; }
+  function safeName(name) { return (name || "冒險者").replace(/[\/:*?"<>|]/g, "_"); }
+
+  function App() {
+    const [state,setState] = useState("cover");
+    const [nickname,setNickname] = useState("");
+    const [birthYear,setBirthYear] = useState("");
+    const [levelIndex,setLevelIndex] = useState(0);
+    const [questionPos,setQuestionPos] = useState(0);
+    const [completed,setCompleted] = useState([]);
+    const [scores,setScores] = useState({ economic:0, cultural:0, social:0 });
+    const [inventory,setInventory] = useState([]);
+    const [answers,setAnswers] = useState({});
+    const [lastAnswer,setLastAnswer] = useState(null);
+    const certRef = useRef(null);
+    const journalRef = useRef(null);
+
+    const totalScore = scores.economic + scores.cultural + scores.social;
+    const tier = getTier(totalScore);
+    const currentLevel = levelMeta[levelIndex] || levelMeta[0];
+    const levelQuestions = questionsData.filter(q => q.level === currentLevel.id);
+    const currentQ = levelQuestions[questionPos] || levelQuestions[0];
+    const globalProgressNumber = state === "question" || state === "feedback" ? currentQ.id : Math.min(Object.keys(answers).length + 1, questionsData.length);
+    const globalProgressPercent = Math.min(100, Math.round((globalProgressNumber / questionsData.length) * 100));
+    const showScoreHeader = ["levelIntro", "question", "feedback"].includes(state);
+
+    function ScoreHeader() {
+      return <div className="score-header" aria-label="目前計分欄位">
+        <div className="score-pill economic"><span className="icon">💰</span><span>{scores.economic}</span></div>
+        <div className="score-pill cultural"><span className="icon">📜</span><span>{scores.cultural}</span></div>
+        <div className="score-pill social"><span className="icon">🛡️</span><span>{scores.social}</span></div>
+        <div className="score-progress"><div className="label">進度 {globalProgressNumber} / {questionsData.length}</div><div className="track"><div className="fill" style={{width:`${globalProgressPercent}%`}}></div></div></div>
+      </div>;
+    }
+
+    useEffect(() => {
+      if (state === "result") {
+        window.submitToGoogleSheet({
+          submittedAt: new Date().toISOString(), nickname, birthYear, totalScore, scores,
+          tierTitle:tier.title, answers, selectedItems:inventory.map(i=>i.text)
+        });
+      }
+    }, [state]);
+
+    function startAdventure(e) {
+      e.preventDefault();
+      if (!nickname.trim()) return alert("請輸入冒險者名稱");
+      if (!/^\d{4}$/.test(String(birthYear).trim())) return alert("請輸入西元出生年，例如 2014");
+      setState("time");
+    }
+    function enterLevel() { setQuestionPos(0); setState("levelIntro"); }
+    function beginQuestions() { setState("question"); }
+    function answer(isYes) {
+      if (isYes) {
+        setScores(prev => ({ ...prev, [currentQ.type]: prev[currentQ.type] + currentQ.weight }));
+        setInventory(prev => [...prev, { id:currentQ.id, text:currentQ.text, type:currentQ.type, levelName:currentQ.levelName }]);
+      }
+      setAnswers(prev => ({ ...prev, [currentQ.id]: isYes }));
+      setLastAnswer(isYes); setState("feedback");
+    }
+    function undo() {
+      if (lastAnswer === true) {
+        setScores(prev => ({ ...prev, [currentQ.type]: prev[currentQ.type] - currentQ.weight }));
+        setInventory(prev => prev.filter(i => i.id !== currentQ.id));
+      }
+      setAnswers(prev => { const next={...prev}; delete next[currentQ.id]; return next; });
+      setState("question");
+    }
+    function nextQuestion() {
+      if (questionPos < levelQuestions.length - 1) { setQuestionPos(questionPos+1); setState("question"); return; }
+      const doneId = currentLevel.id;
+      setCompleted(prev => prev.includes(doneId) ? prev : [...prev, doneId]);
+      if (levelIndex < levelMeta.length - 1) { setLevelIndex(levelIndex+1); setState("map"); }
+      else { setLevelIndex(3); setState("map"); }
+    }
+    function openCastle() { setState("result"); setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),50); }
+    async function downloadNode(ref, filename) {
+      if (!ref.current) return;
+      const canvas = await html2canvas(ref.current, { scale:2, backgroundColor:"#fffdf7", useCORS:true });
+      const a=document.createElement("a"); a.href=canvas.toDataURL("image/png"); a.download=filename; a.click();
+    }
+    function restart() { location.reload(); }
+
+    function inventoryByType(type) {
+      return inventory.filter(item => item.type === type);
+    }
+    function typeMeta(type) {
+      if (type === "economic") return { icon:"💰", title:"物資補給箱", max:maxScores.economic, score:scores.economic, explain:"這一區記錄生活資源、金錢資源、居住與交通便利等條件。它不代表一個人是否努力，而是代表冒險開始時，背包裡已經有哪些物資。" };
+      if (type === "cultural") return { icon:"📜", title:"天賦技能樹", max:maxScores.cultural, score:scores.cultural, explain:"這一區記錄閱讀、學習經驗、才藝、旅行與家庭教育資源。它像技能樹一樣，會影響一個人看見世界與理解世界的方式。" };
+      return { icon:"🛡️", title:"盟友守護陣", max:maxScores.social, score:scores.social, explain:"這一區記錄安全感、情感支持、社會接納與人際網絡。它像冒險隊伍裡的盾牌，讓人在遇到困難時比較不容易孤單。" };
+    }
+
+    return <div className="app">
+      {showScoreHeader && <ScoreHeader />}
+      {state === "cover" && <div className="screen-bg"><div className="frame cover">
+        <form className="glass-panel" onSubmit={startAdventure}>
+          <p>請輸入冒險者名稱與出生年，準備開始社會學 RPG 冒險。</p>
+          <div className="field-row">
+            <input value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="冒險者名稱" />
+            <input value={birthYear} onChange={e=>setBirthYear(e.target.value)} placeholder="西元出生年，例如 2014" inputMode="numeric" />
+            <button className="main-btn" type="submit">開始冒險</button>
+          </div>
+        </form>
+      </div></div>}
+
+      {state === "time" && <div className="screen-bg"><div className="frame time">
+        <div className="name-board">{nickname}</div>
+        <div className="time-copy">冒險者 {nickname}，你好！<br/>請以你目前 12 歲的生命經驗進行回答……<br/><span style={{fontSize:'55%',fontWeight:800}}>（如果你已經長大了，請試著乘坐時光機回到過去）</span></div>
+        <button className="main-btn time-start-btn" onClick={()=>setState("map")}>👌 沒問題，出發！</button>
+      </div></div>}
+
+      {state === "map" && <div className="screen-bg"><div className="frame map">
+        <div className="map-title">{nickname} 的冒險地圖</div>
+        <svg className="map-svg" viewBox="0 0 1280 720" preserveAspectRatio="none">
+          {levelIndex >= 0 && <path className="path show" d="M245 565 C240 470 310 420 390 350" />}
+          {levelIndex >= 1 && <path className="path show" d="M390 350 C520 280 620 310 660 420" />}
+          {levelIndex >= 2 && <path className="path show" d="M660 420 C780 500 870 460 930 360" />}
+          {levelIndex >= 3 && <path className="path show" d="M930 360 C1020 270 1045 210 1020 160" />}
+        </svg>
+        <button className={`map-node ${levelIndex===0?"active":"done"}`} style={{left:"29%",top:"43%"}}>💰 物資補給箱 {completed.includes(1)?"✅":""}</button>
+        <button className={`map-node ${levelIndex===1?"active":completed.includes(2)?"done":"locked"}`} style={{left:"50%",top:"43%"}}>📜 天賦技能樹 {completed.includes(2)?"✅":""}</button>
+        <button className={`map-node ${levelIndex===2?"active":completed.includes(3)?"done":"locked"}`} style={{left:"73%",top:"69%"}}>🛡️ 盟友守護陣 {completed.includes(3)?"✅":""}</button>
+        <button className={`map-node ${levelIndex===3?"active":"locked"}`} style={{left:"80%",top:"24%"}}>🏰 冒險者公會</button>
+        <div className="map-action">
+          {levelIndex < 3 ? <button className="main-btn" onClick={enterLevel}>前往第{levelIndex+1}關：{levelMeta[levelIndex].name}</button> : <button className="main-btn" onClick={openCastle}>前往冒險者公會，領取證書</button>}
+        </div>
+      </div></div>}
+
+      {state === "levelIntro" && <div className="play-screen"><div className="card">
+        <h1>{currentLevel.icon} {currentLevel.name}</h1><p style={{fontSize:22,fontWeight:800,lineHeight:1.7}}>{currentLevel.intro}</p>
+        <button className="main-btn" onClick={beginQuestions}>開始第{currentLevel.id}關</button>
+      </div></div>}
+
+      {state === "question" && <div className="play-screen"><div className="card">
+        <div className="progress"><span>{currentLevel.icon} {currentLevel.name}</span><div className="bar"><div style={{width:`${Math.round(((questionPos+1)/levelQuestions.length)*100)}%`}}></div></div><span>{questionPos+1} / {levelQuestions.length}</span></div>
+        <div className="qbox"><div className="qicon">{currentLevel.icon}</div><div className="qtext">{currentQ.text}</div></div>
+        <div className="answer-grid"><button className="no" onClick={()=>answer(false)}>❌ 無體驗過</button><button className="yes" onClick={()=>answer(true)}>⭕ 有體驗過</button></div>
+      </div></div>}
+
+      {state === "feedback" && <div className="play-screen"><div className="card feedback">
+        <h2>{lastAnswer ? "🎉 獲得裝備！" : "🛡️ 冒險者筆記"}</h2>
+        <p>{lastAnswer ? currentQ.yesText : currentQ.noText}</p>
+        <div className="field-row"><button className="main-btn" onClick={undo}>↩️ 重選</button><button className="main-btn" onClick={nextQuestion}>下一步 ➜</button></div>
+      </div></div>}
+
+      {state === "result" && <div className="result-wrap">
+        <div ref={certRef} className="certificate" aria-label="冒險證書">
+          <div className="cert-name">{nickname}</div>
+          <img className="cert-character" src={tier.character} />
+          <img className="cert-title-icon" src={tier.badge} />
+          <div className="cert-title">{tier.title}</div>
+          <div className="cert-trait">{tier.trait.map((line,i)=><React.Fragment key={i}>{line}{i<tier.trait.length-1 && <br/>}</React.Fragment>)}</div>
+          <img className="cert-badge" src={tier.badge} />
+          <div className="cert-score">{totalScore}</div>
+          <div className="cert-capital economic">{scores.economic}</div>
+          <div className="cert-capital cultural">{scores.cultural}</div>
+          <div className="cert-capital social">{scores.social}</div>
+        </div>
+        <div className="result-actions"><button className="main-btn" onClick={()=>downloadNode(certRef, `冒險證書_${safeName(nickname)}.png`)}>下載冒險證書</button><button className="main-btn" onClick={()=>downloadNode(journalRef, `冒險日誌_${safeName(nickname)}.png`)}>下載冒險日誌</button><button className="main-btn" onClick={restart}>重新開始</button></div>
+        <div ref={journalRef} className="journal">
+          <h2>📖 {nickname} 的冒險日誌</h2>
+          <div className="journal-section journal-text">
+            <h3>一、冒險開局值</h3>
+            <p><b>{totalScore} / {maxScores.total}</b></p>
+            <p>這不是排名，也不是誰比較厲害，而是用來理解每位冒險者的開局條件。分數越高，代表一開始背包裡可使用的資源、支持與通行證越多；分數越低，代表冒險路上可能需要花更多力氣面對關卡。</p>
+            <p>請把它想成 RPG 裡的「開局道具」：有人一開始就有較多補給、技能與隊友，有人則需要在路上一步一步尋找資源。開局不同，不代表人的價值不同，也不代表最後一定會走向同一種結局。</p>
+          </div>
+          <div className="journal-section journal-text">
+            <h3>二、冒險者公會等級一覽表</h3>
+            <div className="tier-grid">
+              {tiers.map((item, index)=><div key={index} className={`tier-card ${tier.title===item.title ? "active" : ""}`}><div style={{fontSize:34}}>{item.icon}</div><div>{item.title}</div><small>{item.label}</small>{tier.title===item.title && <div>👈 你在這裡</div>}</div>)}
+            </div>
+          </div>
+          <div className="journal-section journal-text">
+            <h3>三、角色分析：{tier.title}</h3>
+            <p><b>角色模式：</b>{tier.mode}</p>
+            <p><b>角色精神：</b>{tier.core}</p>
+            <p><b>角色關鍵字：</b>{tier.keywords}</p>
+            <div className="journal-callout slate"><h4>📊 狀態分析</h4><p>{tier.status}</p></div>
+            <div className="journal-callout"><h4>💡 給冒險者的建議</h4><p>{tier.advice}</p></div>
+          </div>
+          <div className="journal-section journal-text">
+            <h3>四、三大資本分析</h3>
+            <div className="capital-list"><div className="mini-card">💰 物資補給箱<br/>{scores.economic} / {maxScores.economic}</div><div className="mini-card">📜 天賦技能樹<br/>{scores.cultural} / {maxScores.cultural}</div><div className="mini-card">🛡️ 盟友守護陣<br/>{scores.social} / {maxScores.social}</div></div>
+            <div className="capital-explain">
+              {["economic","cultural","social"].map(type => { const m=typeMeta(type); return <div key={type} className="mini-card"><b>{m.icon} {m.title}：{m.score} / {m.max}</b><br/>{m.explain}</div>; })}
+            </div>
+          </div>
+          <div className="journal-section journal-text">
+            <h3>五、背包清單</h3>
+            {inventory.length ? <div>{["economic","cultural","social"].map(type => { const m=typeMeta(type); const items=inventoryByType(type); if(!items.length) return null; return <div className="bag-group" key={type}><h4>{m.icon} {m.title}（{items.length}項）</h4><ul className="bag-list">{items.map(item=><li key={item.id}>{item.text}</li>)}</ul></div>; })}</div> : <p>你的背包非常輕盈，這也代表你一路走來更需要靠自己的勇氣前進。</p>}
+          </div>
+          <div className="journal-section journal-text">
+            <h3>六、冒險故事</h3>
+            <p>{tier.story}</p>
+            <p>你完成了物資補給箱、天賦技能樹與盟友守護陣三段旅程，最後抵達冒險者公會。這份日誌記錄的不是勝負，而是你如何理解自己的起點。</p>
+          </div>
+          <div className="journal-section journal-text">
+            <h3>七、給冒險者的提醒</h3>
+            <p>請記得：每個人的背包重量不同，能走到這裡都值得被看見。理解自己的開局，也能幫助我們更溫柔地理解別人。</p>
+          </div>
+        </div>
+      </div>}
+    </div>;
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

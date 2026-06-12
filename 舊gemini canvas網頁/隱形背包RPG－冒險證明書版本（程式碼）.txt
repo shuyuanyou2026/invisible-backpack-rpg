@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>探索你的隱形背包 RPG (2026 數位教學版)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- html2canvas for Screenshot -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fef3c7; /* Amber-50 */
+            overscroll-behavior: none;
+        }
+        .emoji-animate {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(5%); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom Scrollbar for App */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Google Apps Script Logic -->
+    <script>
+        // * 老師請將取得的 Google Script URL 填入下方引號中 *
+        const GOOGLE_SCRIPT_URL = ""; 
+
+        window.submitToGoogleSheet = async (data) => {
+            if (!GOOGLE_SCRIPT_URL) {
+                console.log("未設定 Google Script URL，跳過上傳");
+                return;
+            }
+            
+            try {
+                // 使用 no-cors 模式傳送資料 (只送不讀回傳，避免跨域問題)
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                console.log("資料已傳送至 Google 試算表");
+            } catch (error) {
+                console.error("上傳失敗:", error);
+            }
+        };
+    </script>
+
+    <!-- React App -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 2026 最新資料庫 (35題) ---
+        const questionsData = [
+            // 第一區：物資補給箱 (Economic)
+            { id: 1, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我擁有自己的房間，不需要跟其他人共用。", type: "economic", weight: 1, yesText: "擁有獨立安靜的空間，能讓你更專心休息與學習，這是很棒的環境優勢！", noText: "雖然需要分享空間，但這讓你學會了在熱鬧中專注，以及與人協調相處的能力，這是很強的適應力！" },
+            { id: 2, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我擁有屬於自己使用的電腦或平板。", type: "economic", weight: 1, yesText: "數位工具是現代學習的神器。擁有專屬設備，代表你不用排隊等待，學習效率加倍！", noText: "資源有限時，你學會了等待與珍惜使用的時間。這種「把握當下」的專注力，是誰也搶不走的寶藏。" },
+            { id: 3, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我可以輕易買到適合我尺寸的衣服和鞋子。", type: "economic", weight: 1, yesText: "這代表你是社會眼中的「標準身材」，不用為了穿什麼而感到焦慮，這是一種隱形的便利。", noText: "標準是工廠訂的，美是你自己定義的。雖然買衣服比較麻煩，但這也讓你更有機會穿出獨特風格。" },
+            { id: 4, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我不需要經常去醫院看醫生或做復健（身體健康）。", type: "economic", weight: 1, yesText: "健康的身體幫你省下了大量的時間與金錢，讓你有更多精力去探索世界。", noText: "與身體的不適共處，讓你比同齡人更早學會聆聽身體的聲音，你的意志力是鋼鐵做的！" },
+            { id: 5, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我家裡有請人幫忙打掃，或是定期有鐘點工來做家事。", type: "economic", weight: 3, yesText: "把家事外包，讓全家人多了寶貴的休息時間。記得感謝幫你服務的人，時間就是金錢！", noText: "你可能從小就要幫忙做家事，這讓你比同齡的人更早學會照顧自己與分擔責任，你是家裡的超人！" },
+            { id: 6, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我家裡有兩輛以上的汽車。", type: "economic", weight: 3, yesText: "交通便利讓你移動更自由，省下來的通勤時間可以用來做更多喜歡的事。", noText: "搭公車或走路雖然花時間，但也讓你更熟悉這座城市，還能觀察形形色色的人，這是開車看不到的風景。" },
+            { id: 7, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我有做過牙齒矯正（戴牙套），或是曾經接受過自費的心理諮商、視力矯正等療程（代表家裡有餘力負擔健保以外的額外身心健康投資）。", type: "economic", weight: 3, yesText: "這是對身心健康的額外投資，代表家裡有餘力照顧你的自信心與情緒，這是非常珍貴的禮物。", noText: "自信的笑容來自於內心的快樂，而不是牙齒的排列。你最自然的樣子，就是獨一無二的，不需要昂貴的療程來定義你的價值。" },
+            { id: 8, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我家裡有熱門的遊戲主機（Switch, PS5 等）。", type: "economic", weight: 5, yesText: "擁有熱門遊戲讓你更容易跟同學有共同話題，這是建立友誼的一種社交優勢喔。", noText: "雖然不能在家玩，但你會發明不用插電也好玩的遊戲，或是更珍惜去朋友家玩的時光，你是大家的點子王！" },
+            { id: 9, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我家裡在台北市（或大都會蛋黃區）有房子。", type: "economic", weight: 5, yesText: "住在資源豐富的市中心，圖書館、博物館、補習班都在附近，這是一種強大的「地點優勢」。", noText: "雖然住得遠一點，但也許你有更寬闊的天空。網路讓知識沒有距離，只要你想學，哪裡都是蛋黃區。" },
+            { id: 10, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "爸媽有幫我存股票、基金，或是繳儲蓄險。", type: "economic", weight: 5, yesText: "這就像遊戲裡的「復活金幣」，代表你未來就算失敗了，還有本錢可以重新開始。", noText: "你就是自己最大的本錢！靠自己雙手打拚出來的未來，會讓你更自豪，每一分收穫都實實在在。" },
+            { id: 11, level: 1, levelName: "物資補給箱", levelIcon: "💰", text: "我搭飛機時，坐過商務艙以上的位子。", type: "economic", weight: 5, yesText: "這是一種極少數人能體驗的舒適與尊榮感，是經濟資本帶來的特別禮遇。", noText: "經濟艙雖然擠一點，但到達的目的地是一樣的。能在天空中飛行本身就是奇蹟，享受旅程比座位更重要！" },
+
+            // 第二區：天賦技能樹 (Cultural)
+            { id: 12, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "爸媽會鼓勵我多看課外讀物，家裡也有很多書。", type: "cultural", weight: 1, yesText: "家裡的書櫃是你最早的圖書館，閱讀習慣是你一輩子帶著走的智慧寶庫。", noText: "學校圖書館是永遠為你敞開的寶庫。你主動去借書的那份求知慾，比家裡有書卻不看更珍貴。" },
+            { id: 13, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我有接受過一對一的家教教學（學科或才藝皆可）。", type: "cultural", weight: 3, yesText: "這就像遊戲裡有專屬教練指導，能幫你快速解決卡關的難題，是高效的學習外掛。", noText: "你靠自己在學校聽講、問同學來解決問題。這種「靠自己找答案」的能力，是未來的生存關鍵。" },
+            { id: 14, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我參加過需要付費的營隊、資優班或外語檢定培訓。", type: "cultural", weight: 3, yesText: "這些額外的經驗能幫你探索興趣，這需要家裡有額外的預算支持才能獲得。", noText: "你的興趣是發自內心的熱情，而不是用錢堆出來的。網路上的免費資源，一樣能讓你變強！" },
+            { id: 15, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我有學過樂器、舞蹈或畫畫（藝術相關技能），並且持續一年以上。", type: "cultural", weight: 3, yesText: "藝術素養是進入某些社交圈的「通關密語」，也能豐富你的心靈生活。", noText: "哼歌、塗鴉也是藝術。你的創造力來自於生活，那是發自內心最真實的聲音。" },
+            { id: 16, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "爸媽是大學畢業以上。", type: "cultural", weight: 3, yesText: "爸媽的學歷讓他們更懂得如何引導你在學校「闖關」，他們是你最好的攻略本。", noText: "學歷不代表智慧。爸媽用他們的方式努力生活，這就是最棒的身教。你也會走出屬於自己的路。" },
+            { id: 17, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我讀過雙語學校或國際學校。", type: "cultural", weight: 3, yesText: "這些學校資源豐富，還能讓你提早累積特定的人脈，是強大的菁英公會。", noText: "公立學校是真實社會的縮影，讓你認識各式各樣的朋友。這種「與不同人相處」的能力是無價的。" },
+            { id: 18, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我有學過網球、高爾夫球、滑雪或潛水。", type: "cultural", weight: 5, yesText: "這些運動門檻較高，能接觸它們，代表你的背包裡裝著稀有的體驗券。", noText: "跑步、打球、跳繩也能帶來快樂！運動的本質是享受汗水，你的強壯體魄就是最好的裝備。" },
+            { id: 19, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我去過美國、加拿大、歐洲或紐澳等國家旅行。", type: "cultural", weight: 5, yesText: "長途旅行需要時間與金錢，這些獨特的見聞會成為你未來與人交流的養分。", noText: "透過電影和書本，你一樣可以認識世界。你的眼界取決於你的好奇心，而不是飛機票。" },
+            { id: 20, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "家裡有計畫未來送我出國讀書。", type: "cultural", weight: 5, yesText: "這是長遠的未來規劃，代表家裡有能力為你鋪設一條通往國際的道路。", noText: "留學不是唯一的路。保持開放的心，你在台灣也能成為世界級的人才。你的努力決定你的高度。" },
+            { id: 21, level: 2, levelName: "天賦技能樹", levelIcon: "📜", text: "我擁有雙重國籍，或是其他國家的永久居留權。", type: "cultural", weight: 5, yesText: "這給了你未來選擇居住地的自由，就像擁有了通往另一個伺服器的鑰匙。", noText: "深耕這片土地，成為這裡的守護者與建設者，也是一種很棒的選擇。" },
+
+            // 第三區：盟友守護陣 (Social)
+            { id: 22, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "晚上補習或去便利商店回家時，我通常不會覺得害怕。", type: "social", weight: 1, yesText: "不用擔心人身安全，讓你擁有探索夜晚世界的自由與獨立性。", noText: "你的恐懼是自我保護的本能。這份謹慎讓你避開危險，但也請記得，你有權利安全地生活。" },
+            { id: 23, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我在學校可以不穿制服進出校門（或學校風氣很自由）。", type: "social", weight: 1, yesText: "學校信任學生的判斷力，給予身體自主權，這是一種對「成熟」的肯定。", noText: "在制服的規範下，你依然可以用配件或才華展現個性，這才是真正的「自帶光芒」。" },
+            { id: 24, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我可以輕鬆走進任何一家商店或教室（無障礙設施完善）。", type: "social", weight: 1, yesText: "這代表社會的建築設計，原本就是為了歡迎你而蓋的，你擁有「移動的特權」。", noText: "每一次出門都是障礙賽，你比任何人都懂得規劃與堅持。如果世界不夠友善，你的存在就是在提醒大家改變。" },
+            { id: 25, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "當我難過時，家裡有人願意聽我說話、給我擁抱。", type: "social", weight: 3, yesText: "情感支持是無價的「盟友徽章」，知道背後有人挺你，會讓你更有勇氣面對挑戰。", noText: "如果家裡暫時給不了支持，試著找老師或好朋友當盟友。你值得被溫柔對待，這不是你的錯。" },
+            { id: 26, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我家裡的氣氛通常很平靜，沒有冷暴力或大聲吵架。", type: "social", weight: 3, yesText: "平靜的家是最強大的防護罩，讓你的大腦可以放鬆，不用隨時處於「戰鬥」狀態。", noText: "面對家裡的紛爭，你學會了察言觀色與保護自己。這很辛苦，但也讓你變得早熟且堅強。" },
+            { id: 27, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "家人不會嚴重偏心，也不會拿我跟別人做貶低的比較。", type: "social", weight: 3, yesText: "這保護了你的自尊心，讓你知道「我就是我」，不需要為了討好誰而活。", noText: "別人的評價不代表你的價值。你心裡要有一個聲音告訴自己：「我已經很棒了。」" },
+            { id: 28, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我家裡沒有需要特別花心力照顧的生病家人。", type: "social", weight: 3, yesText: "不用提早當「小大人」照顧家人，讓你有時間好好當個孩子，專注在自己的成長上。", noText: "你比同齡孩子承擔了更多責任，辛苦了。這份貼心讓你成為一個很有愛與責任感的人。" },
+            { id: 29, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我和爸媽走在路上看到警察時，會覺得很安心，不會害怕。", type: "social", weight: 3, yesText: "這代表你的身分符合社會對「好人」的想像，擁有免於恐懼的自由。", noText: "這種不安不是你的錯。你的警覺心保護了你，但也請相信，依然有人願意公正地對待你。" },
+            { id: 30, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我在學校犯錯時，老師通常願意聽我解釋，不會馬上貼我標籤。", type: "social", weight: 3, yesText: "好的師生關係是強大的防護網，讓你即使跌倒了，也有機會被扶起來。", noText: "被誤解很難受，但你的行為由你自己決定。用時間和行動證明真正的你，不要被標籤打敗。" },
+            { id: 31, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我不曾因為我的名字、口音或長相被同學取笑。", type: "social", weight: 3, yesText: "這代表你的特質被大眾接納，不需要花力氣去隱藏自己或對抗嘲笑。", noText: "嘲笑是因為無知。你的名字或口音是你獨特的根源，為自己的不一樣感到驕傲吧！" },
+            { id: 32, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "打開課本或電視時，裡面的主角或英雄通常長得像我。", type: "social", weight: 3, yesText: "這讓你潛意識相信「我也能成為英雄」，對未來的想像充滿希望。", noText: "如果螢幕上還沒有像你的英雄，那就由你來當第一個！世界需要更多像你這樣的主角。" },
+            { id: 33, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "學校放假的日子，通常就是我家裡過節的日子。", type: "social", weight: 3, yesText: "這代表你的文化是社會的主流，不用在「學校規定」與「家庭傳統」之間為難。", noText: "雖然請假有點麻煩，但能慶祝屬於自己獨特文化的節日，是很酷也很值得驕傲的事。" },
+            { id: 34, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "只要報出我們學校的名字，外校的人就會覺得我很厲害。", type: "social", weight: 5, yesText: "學校的招牌變成了你的「光環」，讓你還沒開口就先獲得了信任與佩服。", noText: "沒有名校光環，代表別人是因為「真正的你」而佩服你。靠實力贏來的尊重更紮實。" },
+            { id: 35, level: 3, levelName: "盟友守護陣", levelIcon: "🛡️", text: "我知道有很多厲害的學長姐或親戚，將來可能會照顧我。", type: "social", weight: 5, yesText: "強大的社會網絡就像遊戲裡的「公會」，能為你未來的升學或求職開拓道路。", noText: "你可以成為那個「厲害的學長姐」！沒有現成的路，就自己開一條，建立屬於你的傳奇公會。" }
+        ];
+
+        // --- Components ---
+        const Header = ({ scores, currentQIndex, totalQ }) => {
+            const getPercent = () => Math.min(100, Math.round(((currentQIndex + 1) / totalQ) * 100));
+            return (
+                <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-md p-2 flex justify-around items-center text-sm md:text-base border-b border-gray-200">
+                    <div className="flex flex-col items-center text-amber-600">
+                        <span className="text-xl">💰</span>
+                        <span className="font-bold">{scores.economic}</span>
+                    </div>
+                    <div className="flex flex-col items-center text-emerald-600">
+                        <span className="text-xl">📜</span>
+                        <span className="font-bold">{scores.cultural}</span>
+                    </div>
+                    <div className="flex flex-col items-center text-rose-600">
+                        <span className="text-xl">🛡️</span>
+                        <span className="font-bold">{scores.social}</span>
+                    </div>
+                    <div className="w-1/3 ml-4">
+                        <div className="text-xs text-gray-500 text-right mb-1">進度 {currentQIndex + 1} / {totalQ}</div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div className="bg-amber-500 h-2.5 rounded-full transition-all duration-300" style={{ width: `${getPercent()}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CapitalBarChart = ({ scores }) => {
+            const maxEco = 33, maxCul = 36, maxSoc = 40;
+            const getPercent = (val, max) => Math.min(100, Math.round((val / max) * 100));
+            return (
+                <div className="space-y-6 my-6">
+                    <div>
+                        <div className="flex justify-between mb-2 items-center"><span className="font-bold text-amber-700 flex items-center text-lg"><span className="text-2xl mr-3">💰</span> 物資補給箱</span><span className="font-bold text-amber-700 text-lg">{scores.economic} <span className="text-sm opacity-50">/ {maxEco}</span></span></div>
+                        <div className="w-full bg-amber-100 rounded-full h-5 shadow-inner"><div className="bg-amber-500 h-5 rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${getPercent(scores.economic, maxEco)}%` }}></div></div>
+                    </div>
+                    <div>
+                        <div className="flex justify-between mb-2 items-center"><span className="font-bold text-emerald-700 flex items-center text-lg"><span className="text-2xl mr-3">📜</span> 天賦技能樹</span><span className="font-bold text-emerald-700 text-lg">{scores.cultural} <span className="text-sm opacity-50">/ {maxCul}</span></span></div>
+                        <div className="w-full bg-emerald-100 rounded-full h-5 shadow-inner"><div className="bg-emerald-500 h-5 rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${getPercent(scores.cultural, maxCul)}%` }}></div></div>
+                    </div>
+                    <div>
+                        <div className="flex justify-between mb-2 items-center"><span className="font-bold text-rose-700 flex items-center text-lg"><span className="text-2xl mr-3">🛡️</span> 盟友守護陣</span><span className="font-bold text-rose-700 text-lg">{scores.social} <span className="text-sm opacity-50">/ {maxSoc}</span></span></div>
+                        <div className="w-full bg-rose-100 rounded-full h-5 shadow-inner"><div className="bg-rose-500 h-5 rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${getPercent(scores.social, maxSoc)}%` }}></div></div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App ---
+        const App = () => {
+            const [gameState, setGameState] = useState('start'); 
+            const [nickname, setNickname] = useState('');
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [scores, setScores] = useState({ economic: 0, cultural: 0, social: 0 });
+            const [inventory, setInventory] = useState([]); 
+            const [answers, setAnswers] = useState({});
+            const [lastAnswer, setLastAnswer] = useState(null); 
+            
+            const scrollContainerRef = useRef(null);
+            const activeTierRef = useRef(null);
+            const resultRef = useRef(null);
+
+            // Safer Access
+            const currentQ = questionsData[currentQIndex] || questionsData[0];
+            
+            useEffect(() => {
+                if (gameState === 'intro') {
+                    const timer = setTimeout(() => setGameState('question'), 2500); 
+                    return () => clearTimeout(timer);
+                }
+            }, [gameState]);
+
+            useEffect(() => {
+                if (gameState === 'result' && activeTierRef.current && scrollContainerRef.current) {
+                    const container = scrollContainerRef.current;
+                    const activeCard = activeTierRef.current;
+                    const scrollLeft = activeCard.offsetLeft + (activeCard.offsetWidth / 2) - (container.offsetWidth / 2);
+                    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+                }
+            }, [gameState]);
+
+            const calculateTier = (total) => {
+                if (total >= 101) return { title: "傳說的守護者 (Legendary Guardian)", mode: "👑 創世無敵模式 (God / Creative Mode)", status: "哇！你幾乎擁有全套的神級裝備與強大的公會保護。你在遊戲中就像開了外掛，擁有改變規則的能力，世界對你來說充滿了無限可能。", advice: "擁有這樣的力量是一種巨大的責任。請小心不要因為過得太順遂，而誤以為別人的失敗是因為「不夠努力」。你的任務不僅僅是過關，而是「改變遊戲規則」。你有能力讓這個世界變得對所有人都更公平、更友善。請成為那位守護弱者的真正的英雄。" };
+                if (total >= 76) return { title: "幸運的領航員 (Lucky Navigator)", mode: "🍀 幸運加成模式 (Lucky Mode)", status: "你的運氣很好，背包裡裝了許多稀有道具，這讓你比別人少走很多彎路，視野也更開闊。你可以更專注在探索未知的地圖。", advice: "恭喜你抽到了很好的開局手牌！請記得，這些優勢大多是運氣帶來的，而非單純是你個人的功勞。請保持謙虛與感恩。試著成為隊伍中的領航員，利用你的視野與資源，主動移除路上的障礙，讓隊友們也能順利前進。" };
+                if (total >= 51) return { title: "踏實的冒險家 (Grounded Adventurer)", mode: "⚖️ 標準平衡模式 (Normal Mode)", status: "你的裝備平衡且實用，雖沒有傳說級的神裝，但足以應付大多數的關卡。你擁有穩定的力量，可以按部就班地完成目標。", advice: "你是這個社會的中堅力量。你的背包重量適中，這讓你既能理解資源匱乏者的辛苦，也能想像資源豐富者的生活。善用這份「中間視角」，成為連結不同群體的橋樑。你的穩定與友善，能讓這個隊伍走得更遠。" };
+                if (total >= 26) return { title: "堅毅的挑戰者 (Resilient Challenger)", mode: "⚔️ 困難挑戰模式 (Hard Mode)", status: "你的背包裡有一些基礎道具，但路途依然崎嶇，常常需要為了資源而精打細算。你過得並不輕鬆，但也因為這樣，你更懂得珍惜每一分收穫。", advice: "你是一個腳踏實地的玩家。你知道什麼是「努力就有收穫」的感覺，但也體會過資源不足的無奈。這種同理心是你最大的優勢。請繼續保持你的勤奮，同時多觀察周遭的機會，你的每一次升級都是紮紮實實的實力證明。" };
+                return { title: "逆境中的勇者 (Hero in Adversity)", mode: "🔥 地獄極限模式 (Extreme Survival Mode)", status: "你的背包非常沉重，裡面可能只有最基本的生存物資，甚至還背負著照顧他人的責任。這讓你必須比別人更努力、更小心才能前進。", advice: "這一路走來真的不容易，請為你還站在這裡感到驕傲。你正在玩這場遊戲最困難的模式，這鍛鍊出你超乎常人的韌性與生存智慧。這些是金錢買不到的寶藏。請相信，你的起點不決定你的終點，尋找像老師這樣值得信任的盟友，你絕對有能力走出屬於自己的傳奇路徑。" };
+            };
+
+            const totalScore = scores.economic + scores.cultural + scores.social;
+            const tierInfo = calculateTier(totalScore);
+
+            // Auto Save to Google Sheet
+            useEffect(() => {
+                if (gameState === 'result') {
+                    const dataToSave = { 
+                        nickname, 
+                        totalScore, 
+                        scores, 
+                        tierTitle: tierInfo.title, 
+                        tierMode: tierInfo.mode, 
+                        answers: answers 
+                    };
+                    if (window.submitToGoogleSheet) { 
+                        window.submitToGoogleSheet(dataToSave); 
+                    }
+                }
+            }, [gameState]);
+
+            const handleStart = (e) => {
+                if (e) e.preventDefault();
+                if (!nickname.trim()) return alert("請輸入冒險者暱稱！");
+                setCurrentQIndex(0); 
+                setGameState('instruction'); 
+            };
+
+            const handleInstructionAck = () => {
+                setGameState('intro');
+            };
+
+            const handleAnswer = (isYes) => {
+                if (isYes) {
+                    setScores(prev => ({ ...prev, [currentQ.type]: prev[currentQ.type] + currentQ.weight }));
+                    setInventory(prev => [...prev, { text: currentQ.text, type: currentQ.type }]);
+                }
+                setAnswers(prev => ({ ...prev, [currentQ.id]: isYes }));
+                setLastAnswer(isYes);
+                setGameState('feedback');
+            };
+
+            const handleUndo = () => {
+                if (lastAnswer === true) {
+                     setScores(prev => ({ ...prev, [currentQ.type]: prev[currentQ.type] - currentQ.weight }));
+                    setInventory(prev => prev.slice(0, -1));
+                }
+                const newAnswers = { ...answers };
+                delete newAnswers[currentQ.id];
+                setAnswers(newAnswers);
+                setGameState('question');
+            };
+
+            const handleNext = () => {
+                if (currentQIndex < questionsData.length - 1) {
+                    const nextIndex = currentQIndex + 1;
+                    const currentLevel = questionsData[currentQIndex].level;
+                    const nextLevel = questionsData[nextIndex].level;
+                    setCurrentQIndex(nextIndex);
+                    setGameState(nextLevel !== currentLevel ? 'intro' : 'question');
+                } else {
+                    setGameState('result');
+                }
+            };
+
+            const handleRestart = () => {
+                setScores({ economic: 0, cultural: 0, social: 0 });
+                setInventory([]);
+                setAnswers({});
+                setCurrentQIndex(0);
+                setGameState('start');
+                setNickname('');
+            };
+
+            const handleScreenshot = async () => {
+                if (!resultRef.current) return;
+                try {
+                    const canvas = await html2canvas(resultRef.current, { scale: 2, backgroundColor: '#ffffff' });
+                    const image = canvas.toDataURL("image/png");
+                    const link = document.createElement("a");
+                    link.href = image;
+                    link.download = `冒險證書_${nickname}.png`;
+                    link.click();
+                } catch (e) {
+                    console.error("Screenshot failed", e);
+                    alert("截圖失敗，請手動截圖保存。");
+                }
+            };
+
+            const allTiers = [
+                { min: 0, max: 25, label: "0 ~ 25分", icon: "🏅", title: "逆境中的勇者", mode: "地獄極限模式" },
+                { min: 26, max: 50, label: "26 ~ 50分", icon: "🥉", title: "堅毅的挑戰者", mode: "困難挑戰模式" },
+                { min: 51, max: 75, label: "51 ~ 75分", icon: "🥈", title: "踏實的冒險家", mode: "標準平衡模式" },
+                { min: 76, max: 100, label: "76 ~ 100分", icon: "🍀", title: "幸運的領航員", mode: "幸運加成模式" },
+                { min: 101, max: 999, label: "101分以上", icon: "👑", title: "傳說的守護者", mode: "創世無敵模式" }
+            ];
+
+            const maxScore = 109;
+            const percentage = Math.min(100, Math.round((totalScore / maxScore) * 100));
+            const radius = 60;
+            const circumference = 2 * Math.PI * radius;
+            const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+            // Render Views Logic
+            return (
+                <div className="min-h-screen flex flex-col">
+                    {/* Header is always visible except start and instruction */}
+                    {gameState !== 'start' && gameState !== 'instruction' && <Header scores={scores} currentQIndex={currentQIndex} totalQ={questionsData.length} />}
+                    
+                    <div className="flex-1 flex flex-col items-center justify-center p-4 max-w-2xl mx-auto w-full">
+                        
+                        {gameState === 'start' && (
+                            <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center w-full">
+                                <div className="mb-8 text-6xl animate-bounce">🎒</div>
+                                <h1 className="text-3xl font-bold text-amber-800 mb-2">探索你的隱形背包</h1>
+                                <p className="text-amber-700 mb-8">社會學 RPG 冒險</p>
+                                <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md mb-8">
+                                    <form onSubmit={handleStart}>
+                                        <label className="block text-left text-gray-600 mb-2 font-bold">冒險者暱稱</label>
+                                        <input type="text" className="w-full p-3 border-2 border-amber-200 rounded-lg mb-4 text-lg" placeholder="請輸入你的名字..." value={nickname} onChange={(e) => setNickname(e.target.value)} />
+                                        <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg text-xl shadow-md transition transform hover:scale-105">🎒 背上背包，開始冒險</button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {gameState === 'instruction' && (
+                            <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center fade-in w-full bg-amber-50 fixed inset-0 z-50">
+                                <div className="max-w-lg bg-white p-8 rounded-3xl shadow-xl border-4 border-amber-200">
+                                    <div className="text-6xl mb-6">⏳</div>
+                                    <h2 className="text-2xl font-bold text-amber-800 mb-6 leading-relaxed">
+                                        冒險者 <span className="text-amber-600">{nickname}</span> 您好！
+                                    </h2>
+                                    <p className="text-xl text-gray-700 mb-4 font-bold">
+                                        請以你目前 <span className="text-rose-500 text-2xl">12歲</span> 👦👧<br/>的生命經驗進行回答......
+                                    </p>
+                                    <p className="text-gray-500 mb-8 text-sm">
+                                        (如果你已經長大了，請試著乘坐時光機回到過去 🔙)
+                                    </p>
+                                    <button 
+                                        onClick={handleInstructionAck}
+                                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 px-6 rounded-xl text-xl shadow-lg transition transform hover:scale-105"
+                                    >
+                                        👌 沒問題，出發！
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {gameState === 'intro' && (
+                            <div className="fixed inset-0 z-[9999] min-h-screen bg-amber-800 flex flex-col items-center justify-center text-white fade-in">
+                                <div className="text-8xl mb-6 emoji-animate">{currentQ.levelIcon}</div>
+                                <h2 className="text-2xl font-light opacity-80 mb-2">Level {currentQ.level}</h2>
+                                <h1 className="text-4xl font-bold tracking-wider">{currentQ.levelName}</h1>
+                            </div>
+                        )}
+
+                        {gameState === 'question' && (
+                            <div className="w-full fade-in">
+                                <div className="bg-white rounded-3xl shadow-xl p-8 mb-6 relative overflow-hidden min-h-[300px] flex flex-col justify-center items-center text-center border-b-8 border-amber-200">
+                                    <div className="text-sm font-bold text-amber-600 mb-4 tracking-widest uppercase bg-amber-100 px-4 py-1 rounded-full">Q{currentQIndex + 1} / {questionsData.length}</div>
+                                    <span className="text-6xl mb-6 block">{currentQ.levelIcon}</span>
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-800 leading-relaxed">{currentQ.text}</h2>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button onClick={() => handleAnswer(false)} className="bg-rose-50 hover:bg-rose-100 text-rose-700 border-2 border-rose-200 font-bold py-6 rounded-2xl text-lg md:text-xl transition transform active:scale-95 flex flex-col items-center shadow-sm"><span className="text-3xl mb-1">❌</span> 無體驗過</button>
+                                    <button onClick={() => handleAnswer(true)} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-2 border-emerald-200 font-bold py-6 rounded-2xl text-lg md:text-xl transition transform active:scale-95 flex flex-col items-center shadow-sm"><span className="text-3xl mb-1">⭕</span> 有體驗過</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {gameState === 'feedback' && (
+                            <div className="w-full fade-in">
+                                <div className={`rounded-3xl shadow-xl p-8 mb-6 border-l-8 min-h-[300px] flex flex-col justify-center items-center text-center ${lastAnswer ? 'bg-amber-50 border-amber-400' : 'bg-slate-50 border-slate-400'}`}>
+                                    <div className="mb-6">{lastAnswer ? <div className="inline-block bg-amber-200 text-amber-900 px-4 py-2 rounded-full font-bold text-lg shadow-sm">🎉 獲得裝備！</div> : <div className="inline-block bg-slate-200 text-slate-800 px-4 py-2 rounded-full font-bold text-lg shadow-sm">🛡️ 冒險者筆記</div>}</div>
+                                    <p className="text-gray-700 text-lg md:text-xl leading-relaxed font-medium">{lastAnswer ? currentQ.yesText : currentQ.noText}</p>
+                                </div>
+                                <div className="flex gap-4 justify-center mt-6">
+                                    <button onClick={handleUndo} className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-4 px-6 rounded-full shadow-lg text-lg flex items-center justify-center transition hover:scale-105">↩️ 重選</button>
+                                    <button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full shadow-lg text-xl flex items-center justify-center transition hover:scale-105">下一題 ➡️</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {gameState === 'result' && (
+                            <div className="w-full">
+                                <div className="bg-amber-600 text-white p-8 rounded-b-3xl shadow-lg mb-8 text-center -mx-4">
+                                    <h1 className="text-2xl md:text-3xl font-bold mb-2">冒險結束！「{nickname}」的稱號是...</h1>
+                                </div>
+                                <div className="max-w-4xl mx-auto px-4" ref={resultRef}>
+                                    <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 transform -translate-y-6">
+                                        <div className="flex flex-col md:flex-row items-center gap-8">
+                                            <div className="flex-shrink-0 w-full md:w-auto flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-gray-100 pb-6 md:pb-0 md:pr-10">
+                                                <h3 className="text-gray-400 font-bold mb-4 text-sm uppercase tracking-widest">你的總積分</h3>
+                                                <div className="relative w-48 h-48 flex items-center justify-center">
+                                                    <svg className="w-full h-full transform -rotate-90">
+                                                        <circle cx="50%" cy="50%" r={radius} stroke="#f3f4f6" strokeWidth="12" fill="none" />
+                                                        <circle cx="50%" cy="50%" r={radius} stroke="#f59e0b" strokeWidth="12" fill="none" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" style={{ transition: "stroke-dashoffset 1s ease-out" }} />
+                                                    </svg>
+                                                    <div className="absolute flex flex-col items-center">
+                                                        <div className="text-6xl font-black text-amber-600 leading-none">{totalScore}</div>
+                                                        <div className="text-xs text-gray-400 font-bold mt-1">/ {maxScore}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow space-y-6 w-full text-center md:text-left">
+                                                <div className="border-b border-amber-100 pb-4">
+                                                    <div className="text-gray-500 font-bold mb-1 text-sm">冒險者：<span className="text-gray-800 text-lg">{nickname}</span></div>
+                                                    <h2 className="text-3xl font-bold text-gray-800 mb-2">{tierInfo.title}</h2>
+                                                    <div className="inline-block bg-amber-100 text-amber-800 px-3 py-1 rounded-lg font-bold text-sm">{tierInfo.mode}</div>
+                                                </div>
+                                                <div className="space-y-4 text-gray-700 leading-relaxed text-left">
+                                                    <div className="bg-slate-50 p-4 rounded-xl border-l-4 border-slate-400">
+                                                        <h4 className="font-bold text-slate-700 mb-1 flex items-center">📊 狀態分析</h4>
+                                                        <p className="text-sm md:text-base">{tierInfo.status}</p>
+                                                    </div>
+                                                    <div className="bg-amber-50 p-4 rounded-xl border-l-4 border-amber-400">
+                                                        <h4 className="font-bold text-amber-700 mb-1 flex items-center">💡 給冒險者的建議</h4>
+                                                        <p className="text-sm md:text-base">{tierInfo.advice}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                                        <h3 className="text-lg font-bold text-gray-700 border-b pb-2 mb-4">📜 冒險者公會等級一覽表</h3>
+                                        <div ref={scrollContainerRef} className="flex overflow-x-auto gap-4 pb-4 px-2 snap-x hide-scrollbar">
+                                            {allTiers.map((tier, idx) => {
+                                                const isActive = totalScore >= tier.min && totalScore <= tier.max;
+                                                return (
+                                                    <div key={idx} ref={isActive ? activeTierRef : null} className={`min-w-[260px] md:min-w-[200px] flex-1 flex flex-col justify-between p-4 rounded-xl border snap-center transition-all duration-300 ${isActive ? "bg-amber-100 border-amber-500 shadow-md scale-100 opacity-100 ring-2 ring-amber-300" : "bg-gray-50 border-gray-200 opacity-70 grayscale-[0.3]"}`}>
+                                                        <div className="text-center mb-3">
+                                                            <div className="text-4xl mb-2">{tier.icon}</div>
+                                                            <div className={`font-bold text-lg leading-tight mb-1 ${isActive ? "text-amber-900" : "text-gray-600"}`}>{tier.title}</div>
+                                                            <div className="text-xs text-gray-500">{tier.mode}</div>
+                                                        </div>
+                                                        <div className="text-center border-t border-black/10 pt-3">
+                                                            <div className="text-sm font-mono font-bold text-gray-600 bg-white/50 inline-block px-2 rounded">{tier.label}</div>
+                                                            {isActive && <div className="mt-2 text-xs font-bold text-amber-600 bg-white px-2 py-1 rounded-full shadow-sm inline-block">👈 你在這裡</div>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                                        <h3 className="text-lg font-bold text-gray-700 border-b pb-2 mb-4">📊 三大資本能力值</h3>
+                                        <CapitalBarChart scores={scores} />
+                                    </div>
+                                    <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                                        <h3 className="text-lg font-bold text-gray-700 border-b pb-2 mb-4">🎒 你的背包清單 ({inventory.length} 項)</h3>
+                                        {inventory.length === 0 ? <p className="text-gray-500 text-center py-4">你的背包非常輕盈...</p> : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {['economic', 'cultural', 'social'].map(type => {
+                                                    const items = inventory.filter(i => i.type === type);
+                                                    if (items.length === 0) return null;
+                                                    let icon="", title="", color="";
+                                                    if(type==='economic') { icon="💰"; title="物資補給箱"; color="bg-amber-50 border-amber-200 text-amber-800"; }
+                                                    if(type==='cultural') { icon="📜"; title="天賦技能樹"; color="bg-emerald-50 border-emerald-200 text-emerald-800"; }
+                                                    if(type==='social') { icon="🛡️"; title="盟友守護陣"; color="bg-rose-50 border-rose-200 text-rose-800"; }
+                                                    return (
+                                                        <div key={type} className={`rounded-xl p-4 border ${color} md:col-span-2`}>
+                                                            <h4 className="font-bold flex items-center mb-3 text-lg border-b border-black/10 pb-2"><span className="mr-2 text-2xl">{icon}</span> {title}</h4>
+                                                            <ul className="space-y-2">{items.map((item, idx) => <li key={idx} className="flex items-start"><span className="mr-2 opacity-60">•</span><span>{item.text}</span></li>)}</ul>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="max-w-4xl mx-auto px-4 pb-8 flex flex-col gap-4">
+                                    <button onClick={handleScreenshot} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:scale-[1.01]">📸 下載冒險證書</button>
+                                    <button onClick={handleRestart} className="w-full bg-gray-800 hover:bg-black text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:scale-[1.01]">🔄 再次挑戰</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
