@@ -43,12 +43,9 @@
     .path.show { animation:drawPath 1.2s ease-out both; }
     @keyframes drawPath { from { stroke-dashoffset:240; opacity:.05; } to { stroke-dashoffset:0; opacity:.7; } }
     .map-action { display:none; }
-    .score-header { position:fixed; left:0; right:0; top:0; z-index:1000; height:84px; background:rgba(255,255,255,.96); box-shadow:0 3px 10px rgba(80,40,8,.12); display:flex; align-items:center; justify-content:space-around; gap:18px; padding:10px 7vw; }
-    .score-pill { min-width:130px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:900; line-height:1.15; }
-    .score-pill .icon { font-size:24px; }
-    .score-pill.economic { color:var(--eco); } .score-pill.cultural { color:var(--cul); } .score-pill.social { color:var(--soc); }
-    .score-progress { flex:1; max-width:520px; min-width:220px; }
-    .score-progress .label { text-align:right; font-size:14px; color:#6b7280; margin-bottom:6px; font-weight:800; }
+    .score-header { position:fixed; left:0; right:0; top:0; z-index:1000; height:84px; background:rgba(255,255,255,.96); box-shadow:0 3px 10px rgba(80,40,8,.12); display:flex; align-items:center; justify-content:center; padding:10px 20px; }
+    .score-progress { width:min(100%,680px); }
+    .score-progress .label { text-align:center; font-size:14px; color:#6b7280; margin-bottom:8px; font-weight:800; }
     .score-progress .track { height:12px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
     .score-progress .fill { height:100%; background:#f59e0b; border-radius:999px; transition:.25s; }
     .play-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:116px 20px 32px; background:#fffdf7; }
@@ -96,7 +93,7 @@
     .bag-list { columns:2; column-gap:28px; line-height:1.9; }
     @media (max-width:760px) {
       .frame { min-width:900px; } .screen-bg { align-items:flex-start; overflow-x:auto; }
-      .score-header { height:auto; flex-wrap:wrap; padding:8px; position:sticky; } .score-pill { min-width:82px; } .play-screen { padding-top:28px; }
+      .score-header { height:72px; padding:8px 18px; position:sticky; } .play-screen { padding-top:28px; }
       .answer-grid,.capital-list { grid-template-columns:1fr; } .bag-list { columns:1; }
       .certificate { min-width:920px; } .result-wrap { overflow-x:auto; }
     }
@@ -275,10 +272,7 @@
     const showScoreHeader = ["levelIntro", "question", "feedback"].includes(state);
 
     function ScoreHeader() {
-      return <div className="score-header" aria-label="目前計分欄位">
-        <div className="score-pill economic"><span className="icon">💰</span><span>{scores.economic}</span></div>
-        <div className="score-pill cultural"><span className="icon">📜</span><span>{scores.cultural}</span></div>
-        <div className="score-pill social"><span className="icon">🛡️</span><span>{scores.social}</span></div>
+      return <div className="score-header" aria-label="答題進度">
         <div className="score-progress"><div className="label">進度 {globalProgressNumber} / {questionsData.length}</div><div className="track"><div className="fill" style={{width:`${globalProgressPercent}%`}}></div></div></div>
       </div>;
     }
@@ -421,7 +415,7 @@
         <button className={`map-node ${levelIndex===0?"active":"done"}`} style={{left:"24.5%",top:"39%", "--node-w":"25%", "--node-h":"29%"}} aria-label="前往第1關：物資補給箱" onClick={levelIndex===0 ? enterLevel : undefined}>物資補給箱</button>
         <button className={`map-node ${levelIndex===1?"active":completed.includes(2)?"done":"locked"}`} style={{left:"51.8%",top:"51%", "--node-w":"28%", "--node-h":"48%"}} aria-label="前往第2關：天賦技能樹" onClick={levelIndex===1 ? enterLevel : undefined}>天賦技能樹</button>
         <button className={`map-node ${levelIndex===2?"active":completed.includes(3)?"done":"locked"}`} style={{left:"80%",top:"75%", "--node-w":"29%", "--node-h":"30%"}} aria-label="前往第3關：盟友守護陣" onClick={levelIndex===2 ? enterLevel : undefined}>盟友守護陣</button>
-        <button className={`map-node ${levelIndex===3?"active":"locked"}`} style={{left:"81%",top:"26%", "--node-w":"27%", "--node-h":"34%"}} aria-label="前往冒險者公會，領取證書" onClick={levelIndex===3 ? openCastle : undefined}>冒險者公會</button>
+        <button className={`map-node ${levelIndex===3?"active":"locked"}`} style={{left:"82%",top:"26%", "--node-w":"21%", "--node-h":"29%"}} aria-label="前往冒險者公會，領取證書" onClick={levelIndex===3 ? openCastle : undefined}>冒險者公會</button>
       </div></div>}
 
       {state === "levelIntro" && <div className="play-screen"><div className="card">
