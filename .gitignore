@@ -4,3 +4,7 @@ gh-login-output.txt
 gh-login-job.txt
 github-device-code.json
 *.tmp
+.tmp.drivedownload/
+.tmp.driveupload/
+*.gsheet
+驗收紀錄/
