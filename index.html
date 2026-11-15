@@ -327,9 +327,10 @@
       try {
         if (!submissionRef.current) {
           submissionRef.current = {
-            schemaVersion:1,
+            schemaVersion:2,
             submissionId:window.BackpackSheets.createId(),
             nickname:nickname.trim(),
+            birthYear:Number(String(birthYear).trim()),
             answers:{...answers},
             recordType:"正式"
           };
@@ -347,7 +348,10 @@
     function startAdventure(e) {
       e.preventDefault();
       if (!nickname.trim()) return alert("請輸入冒險者名稱");
-      if (!/^\d{4}$/.test(String(birthYear).trim())) return alert("請輸入西元出生年，例如 2014");
+      const year = String(birthYear).trim();
+      if (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > new Date().getFullYear()) {
+        return alert(`請輸入 1900～${new Date().getFullYear()} 的西元出生年，例如 2014`);
+      }
       setState("time");
     }
     function enterLevel() { setQuestionPos(0); setState("levelIntro"); }
